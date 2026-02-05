@@ -1,33 +1,21 @@
+import { useState } from "react";
 import DocumentCard from "../ui/DocumentCard";
+import { documents } from "@/data/documents";
 
-export default function BrowseView() {
-    // Placeholder data for the browse grid
-    const recentUploads = [
-        {
-            title: "Nike Store Receipt",
-            subtitle: "Uploaded 2 mins ago",
-            status: "Processing",
-            badgeText: "Receipt",
-        },
-        {
-            title: "Utility Bill - Jan",
-            subtitle: "Uploaded 1 hour ago",
-            status: "Analyzed",
-            badgeText: "Invoice",
-        },
-        {
-            title: "Lease Agreement",
-            subtitle: "Uploaded Yesterday",
-            status: "Done",
-            badgeText: "Contract",
-        },
-        {
-            title: "Car Insurance",
-            subtitle: "Uploaded 2 days ago",
-            status: "Done",
-            badgeText: "Policy",
-        },
-    ];
+interface BrowseViewProps {
+    initialFilter?: string;
+}
+
+export default function BrowseView({ initialFilter = "All" }: BrowseViewProps) {
+    const [filter, setFilter] = useState(initialFilter);
+
+    const filteredDocs = documents.filter(doc => {
+        if (filter === "All") return true;
+        if (filter === "Receipts") return doc.type === "Receipt";
+        if (filter === "Subscriptions") return doc.type === "Subscription";
+        if (filter === "Fines") return doc.type === "Fine";
+        return true;
+    });
 
     return (
         <div className="flex h-full flex-col p-8 overflow-y-auto">
@@ -52,27 +40,37 @@ export default function BrowseView() {
                 </div>
             </section>
 
-            {/* Recent Uploads Grid */}
+            {/* Gallery Section */}
             <section>
-                <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-lg font-bold text-gray-900">Recent Uploads</h2>
-                    <button className="text-sm font-medium text-blue-600 hover:text-blue-700">View All</button>
+                <div className="mb-6 flex items-center justify-between">
+                    <h2 className="text-lg font-bold text-gray-900">Your Documents</h2>
+
+                    {/* Filter Toggles */}
+                    <div className="flex gap-2 rounded-lg bg-gray-100 p-1">
+                        {["All", "Receipts", "Subscriptions", "Fines"].map((f) => (
+                            <button
+                                key={f}
+                                onClick={() => setFilter(f)}
+                                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all ${filter === f
+                                    ? "bg-white text-gray-900 shadow-sm"
+                                    : "text-gray-500 hover:text-gray-700"
+                                    }`}
+                            >
+                                {f}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {recentUploads.map((doc, idx) => (
-                        <DocumentCard key={idx} {...doc} />
+                    {filteredDocs.map((doc) => (
+                        <DocumentCard key={doc.id} {...doc} />
                     ))}
-                    {/* Add some placeholders to fill grid */}
-                    {[1, 2, 3, 4].map((i) => (
-                        <div key={`param-${i}`} className="flex flex-col gap-3 p-4 rounded-xl border border-gray-200 bg-white shadow-sm opacity-60">
-                            <div className="h-32 w-full rounded-lg bg-gray-100 flex items-center justify-center">
-                                <span className="text-gray-400 text-sm">Preview</span>
-                            </div>
-                            <div className="h-4 w-3/4 rounded bg-gray-100"></div>
-                            <div className="h-3 w-1/2 rounded bg-gray-100"></div>
+                    {filteredDocs.length === 0 && (
+                        <div className="col-span-full py-12 text-center text-gray-400">
+                            No documents found for this filter.
                         </div>
-                    ))}
+                    )}
                 </div>
             </section>
         </div>

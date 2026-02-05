@@ -3,13 +3,21 @@
 import { useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import TopBar from "@/components/layout/TopBar";
-import EmptyState from "@/components/views/EmptyState";
 import DashboardView from "@/components/views/DashboardView";
 import BrowseView from "@/components/views/BrowseView";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [hasUploaded, setHasUploaded] = useState(false);
+
+  // Map sidebar tabs to BrowseView filters
+  const getBrowseFilter = () => {
+    switch (activeTab) {
+      case "receipts": return "Receipts";
+      case "subscriptions": return "Subscriptions";
+      case "browse": return "All";
+      default: return "All";
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50 text-gray-900">
@@ -19,19 +27,15 @@ export default function Home() {
         <TopBar />
 
         <main className="flex-1 overflow-hidden">
-          {activeTab === "dashboard" && (
-            hasUploaded ? (
-              <DashboardView />
-            ) : (
-              <EmptyState onUpload={() => setHasUploaded(true)} />
-            )
+          {activeTab === "dashboard" && <DashboardView />}
+
+          {["browse", "receipts", "subscriptions"].includes(activeTab) && (
+            <BrowseView key={activeTab} initialFilter={getBrowseFilter()} />
           )}
 
-          {activeTab === "browse" && <BrowseView />}
-
-          {["receipts", "subscriptions", "warranties"].includes(activeTab) && (
+          {activeTab === "warranties" && (
             <div className="flex h-full items-center justify-center text-gray-400">
-              Work in progress
+              Warranties Work in progress
             </div>
           )}
         </main>
