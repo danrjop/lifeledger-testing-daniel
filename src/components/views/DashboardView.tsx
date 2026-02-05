@@ -1,41 +1,22 @@
+import { useState } from "react";
 import EventCard from "../ui/EventCard";
 import DocumentCard from "../ui/DocumentCard";
+import { documents } from "@/data/documents";
 
 export default function DashboardView() {
-    const events = [
-        { date: "2026-02-05", title: "Return deadline (Nike)", docRef: "doc_002" },
-        { date: "2026-02-12", title: "Lisbon trip check-in", docRef: "doc_003" },
-        { date: "2026-03-12", title: "Adobe renewal", docRef: "doc_001" },
-        { date: "2027-12-02", title: "Warranty expiry", docRef: "doc_004" },
-    ];
+    const [selectedDocId, setSelectedDocId] = useState(documents[0]?.id);
 
-    const documents = [
-        {
-            title: "Adobe Creative Cloud",
-            subtitle: "Renews Mar 12, 2026 • $20.99",
-            status: "Status: Done",
-            badgeText: "Subscription",
-        },
-        {
-            title: "Nike Store Receipt",
-            subtitle: "Total $128.40 • Order #A1B2",
-            status: "Status: Done",
-            badgeText: "Receipt",
-        },
-        {
-            title: "Lisbon Hotel Parking",
-            subtitle: "Parking code inside • Check-in 5pm",
-            status: "Status: Needs review",
-            statusColor: "text-amber-600",
-            badgeText: "Confirmations",
-        },
-        {
-            title: "Laptop Warranty",
-            subtitle: "Serial number + expiry date",
-            status: "Status: Processing",
-            statusColor: "text-blue-600",
-            badgeText: "Warranty",
-        },
+    const selectedDoc = documents.find(d => d.id === selectedDocId) || documents[0];
+
+    const events = [
+        { date: "2026-02-05", title: "Return deadline (Nike)", docRef: "doc_receipt_2" }, // McDonald's (using as proxy for recent receipt) - actually Nike is doc_receipt_2? No, let's check ids.
+        // Wait, documents are: receipt1 (Zheng Hui), receipt2 (McDonalds), receipt3 (Sam Sam), receipt4 (Asia Mart), receipt5 (Lightroom)
+        // Subscription: adobe (doc_sub_adobe), azure (doc_sub_azure)
+        // Fine: ticket (doc_ticket_rome)
+        // Let's make the events match the data
+        { date: "2026-02-12", title: "Adobe renewal", docRef: "doc_sub_adobe" },
+        { date: "2026-02-15", title: "Azure auto-pay", docRef: "doc_sub_azure" },
+        { date: "2026-02-20", title: "Ticket dispute due", docRef: "doc_ticket_rome" },
     ];
 
     return (
@@ -59,52 +40,104 @@ export default function DashboardView() {
                 {/* Document List (Left) */}
                 <div className="w-1/3 flex flex-col gap-4">
                     <h2 className="text-lg font-bold text-gray-900">Documents</h2>
-                    <div className="flex flex-col gap-3">
-                        {documents.map((doc, idx) => (
-                            <DocumentCard key={idx} {...doc} />
+                    <div className="flex flex-col gap-3 h-full overflow-y-auto pr-2">
+                        {documents.map((doc) => (
+                            <div key={doc.id} onClick={() => setSelectedDocId(doc.id)} className={selectedDocId === doc.id ? "ring-2 ring-blue-500 rounded-xl" : ""}>
+                                <DocumentCard {...doc} />
+                            </div>
                         ))}
                     </div>
                 </div>
 
-                {/* Detail View (Right) - Matching the mockup */}
-                <div className="flex-1 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <div className="flex justify-between items-start mb-6">
-                        <div>
-                            <h2 className="text-xl font-bold text-gray-900">Adobe Creative Cloud</h2>
-                            <p className="text-gray-500">Renews Mar 12, 2026 • $20.99</p>
-                        </div>
-                        <span className="rounded-md bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">Subscription</span>
-                    </div>
+                {/* Detail View (Right) */}
+                <div className="flex-1 rounded-xl border border-gray-200 bg-white p-6 shadow-sm overflow-y-auto">
+                    {selectedDoc && (
+                        <>
+                            <div className="flex justify-between items-start mb-6">
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-900">{selectedDoc.primaryEntity}</h2>
+                                    <p className="text-gray-500">{selectedDoc.type} • {selectedDoc.totalValue} • {selectedDoc.primaryDate}</p>
+                                </div>
+                                <span className={`rounded-md px-3 py-1 text-xs font-medium ${selectedDoc.type === "Receipt" ? "bg-green-100 text-green-700" :
+                                        selectedDoc.type === "Subscription" ? "bg-purple-100 text-purple-700" :
+                                            "bg-red-100 text-red-700"
+                                    }`}>
+                                    {selectedDoc.type}
+                                </span>
+                            </div>
 
-                    {/* Extracted Data Grid */}
-                    <div className="grid grid-cols-2 gap-4 mb-8">
-                        <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
-                            <div className="text-xs text-gray-500 mb-1">Merchant</div>
-                            <div className="font-semibold text-gray-900">Adobe</div>
-                            <div className="text-xs text-gray-400 mt-1">conf: 0.92</div>
-                        </div>
-                        <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
-                            <div className="text-xs text-gray-500 mb-1">Amount</div>
-                            <div className="font-semibold text-gray-900">$20.99</div>
-                            <div className="text-xs text-gray-400 mt-1">conf: 0.88</div>
-                        </div>
-                        <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
-                            <div className="text-xs text-gray-500 mb-1">Date</div>
-                            <div className="font-semibold text-gray-900">2026-03-12</div>
-                            <div className="text-xs text-gray-400 mt-1">conf: 0.95</div>
-                        </div>
-                        <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
-                            <div className="text-xs text-gray-500 mb-1">Needs review?</div>
-                            <div className="font-semibold text-gray-900">No</div>
-                            <div className="text-xs text-gray-400 mt-1">conf: --</div>
-                        </div>
-                    </div>
+                            {/* Extracted Data Grid */}
+                            <div className="grid grid-cols-2 gap-4 mb-8">
+                                <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                                    <div className="text-xs text-gray-500 mb-1">Entity</div>
+                                    <div className="font-semibold text-gray-900">{selectedDoc.primaryEntity}</div>
+                                    {selectedDoc.secondaryEntity && <div className="text-xs text-gray-400 mt-1">{selectedDoc.secondaryEntity}</div>}
+                                </div>
+                                <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                                    <div className="text-xs text-gray-500 mb-1">Amount</div>
+                                    <div className="font-semibold text-gray-900">{selectedDoc.totalValue}</div>
+                                </div>
+                                <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                                    <div className="text-xs text-gray-500 mb-1">Date</div>
+                                    <div className="font-semibold text-gray-900">{selectedDoc.primaryDate}</div>
+                                </div>
+                                <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                                    <div className="text-xs text-gray-500 mb-1">Status</div>
+                                    <div className="font-semibold text-gray-900">{selectedDoc.status}</div>
+                                </div>
+                            </div>
 
-                    {/* Evidence Placeholder */}
-                    <div className="w-full h-48 rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 bg-gray-50 text-sm">
-                        Evidence overlay placeholder (bbox highlight on image)
-                    </div>
+                            {/* Line Items if available */}
+                            {selectedDoc.lineItems && (
+                                <div className="mb-8">
+                                    <h3 className="text-sm font-bold text-gray-900 mb-3">Line Items</h3>
+                                    <div className="rounded-lg border border-gray-200 overflow-hidden text-sm">
+                                        <table className="w-full text-left">
+                                            <thead className="bg-gray-50 text-gray-500">
+                                                <tr>
+                                                    <th className="px-4 py-2 font-medium">Description</th>
+                                                    <th className="px-4 py-2 font-medium text-right">Qty</th>
+                                                    <th className="px-4 py-2 font-medium text-right">Amount</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                                {selectedDoc.lineItems.map((item, idx) => (
+                                                    <tr key={idx}>
+                                                        <td className="px-4 py-2">{item.description}</td>
+                                                        <td className="px-4 py-2 text-right">{item.qty || 1}</td>
+                                                        <td className="px-4 py-2 text-right">{item.amount}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
 
+                            {/* Metadata Key-Value Pairs */}
+                            {selectedDoc.metadata && (
+                                <div className="mb-8">
+                                    <h3 className="text-sm font-bold text-gray-900 mb-3">Metadata</h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {Object.entries(selectedDoc.metadata).map(([key, value]) => (
+                                            <div key={key} className="flex gap-2 rounded-md border border-gray-200 px-3 py-1.5 text-xs">
+                                                <span className="font-medium text-gray-500">{key}:</span>
+                                                <span className="text-gray-900">{value}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Evidence Placeholder */}
+                            <div className="w-full h-64 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden relative">
+                                <img src={selectedDoc.fileUrl} alt="Evidence" className="w-full h-full object-contain" />
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <span className="bg-black/50 text-white px-3 py-1 rounded-full text-xs backdrop-blur-md">Evidence View</span>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
             </section>
         </div>
