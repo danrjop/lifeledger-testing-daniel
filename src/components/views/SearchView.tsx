@@ -32,20 +32,20 @@ export default function SearchView({ query, onBack, onViewDoc }: SearchViewProps
             bboxes = {
                 // SROIE X51006619772 (McDonalds)
                 "doc_receipt_2": [
-                    { x: 75, y: 78, width: 14, height: 3, label: "Total" },
-                    { x: 10, y: 25, width: 70, height: 3, label: "Merchant" }
+                    { x: 65, y: 88, width: 25, height: 4, label: "Total" },
+                    { x: 10, y: 15, width: 70, height: 5, label: "Merchant" }
                 ],
                 // SROIE X51005268472 (Asia Mart)
                 "doc_receipt_4": [
-                    { x: 72, y: 74, width: 10, height: 2, label: "Total" }
+                    { x: 60, y: 85, width: 25, height: 4, label: "Total" }
                 ]
             };
         } else if (query.includes("home supplies")) {
             answer = "You have spent **$126.55** on home supplies. This includes a hardware purchase at Zheng Hui ($112.45) and office supplies at Sam Sam Trading ($14.10).";
             candidateIds = ["doc_receipt_1", "doc_receipt_3"];
             bboxes = {
-                "doc_receipt_1": [{ x: 50, y: 85, width: 20, height: 5, label: "Total" }],
-                "doc_receipt_3": [{ x: 40, y: 80, width: 25, height: 6, label: "Total" }]
+                "doc_receipt_1": [{ x: 55, y: 92, width: 20, height: 4, label: "Total" }],
+                "doc_receipt_3": [{ x: 45, y: 88, width: 25, height: 5, label: "Total" }]
             };
         } else if (query.includes("subscriptions")) {
             answer = "Your upcoming subscriptions are:\n- **Microsoft Azure** (approx $45.32) renewing in 5 days.\n- **Adobe Creative Cloud** ($19.99) renewing in 20 days.";
