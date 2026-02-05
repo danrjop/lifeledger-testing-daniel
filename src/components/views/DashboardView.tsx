@@ -13,7 +13,7 @@ export default function DashboardView({ onViewDoc }: DashboardViewProps) {
     const selectedDoc = documents.find(d => d.id === selectedDocId) || documents[0];
 
     const events = [
-        { date: "2026-02-05", title: "Return deadline (Nike)", docRef: "doc_receipt_2" }, // McDonald's (using as proxy for recent receipt) - actually Nike is doc_receipt_2? No, let's check ids.
+        { date: "2026-02-05", title: "Return deadline (Hardware)", docRef: "doc_receipt_1" },
         // Wait, documents are: receipt1 (Zheng Hui), receipt2 (McDonalds), receipt3 (Sam Sam), receipt4 (Asia Mart), receipt5 (Lightroom)
         // Subscription: adobe (doc_sub_adobe), azure (doc_sub_azure)
         // Fine: ticket (doc_ticket_rome)
