@@ -18,10 +18,10 @@ export default function DocumentCard({
     // Status color mapping
     const getStatusColor = (s: string) => {
         switch (s) {
-            case "Done": return "text-green-600 bg-green-50";
-            case "Needs Review": return "text-amber-600 bg-amber-50";
-            case "Processing": return "text-blue-600 bg-blue-50";
-            default: return "text-gray-600 bg-gray-50";
+            case "Done": return "text-success bg-success/10";
+            case "Needs Review": return "text-warning bg-warning/10";
+            case "Processing": return "text-info bg-info/10";
+            default: return "text-fg-secondary bg-bg-tertiary";
         }
     };
 
@@ -47,16 +47,16 @@ export default function DocumentCard({
     return (
         <div
             onClick={onClick}
-            className="group relative flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all hover:border-blue-400 hover:shadow-md cursor-pointer"
+            className="group relative flex flex-col gap-3 rounded-2xl border border-bg-tertiary/50 bg-bg-secondary p-6 transition-colors duration-200 hover:border-bg-tertiary cursor-pointer"
         >
             {/* Image Preview */}
-            <div className="relative h-32 w-full overflow-hidden rounded-lg bg-gray-100">
+            <div className="relative h-32 w-full overflow-hidden rounded-xl bg-bg-tertiary">
                 <img
                     src={fileUrl}
                     alt={primaryEntity}
                     className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
                 />
-                <span className="absolute top-2 right-2 rounded-md bg-black/60 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                <span className="absolute top-2 right-2 rounded-md bg-fg-primary/70 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
                     {type}
                 </span>
             </div>
@@ -65,26 +65,26 @@ export default function DocumentCard({
             <div className="flex flex-col gap-1">
                 <div className="flex justify-between items-start">
                     <div>
-                        <h3 className="font-semibold text-gray-900 line-clamp-1" title={primaryEntity}>
+                        <h3 className="font-semibold text-fg-primary line-clamp-1" title={primaryEntity}>
                             {primaryEntity}
                         </h3>
                         {secondaryEntity && (
-                            <p className="text-xs text-gray-500 line-clamp-1">{secondaryEntity}</p>
+                            <p className="text-xs text-fg-secondary line-clamp-1">{secondaryEntity}</p>
                         )}
                     </div>
-                    <span className="font-bold text-gray-900">{totalValue}</span>
+                    <span className="font-semibold text-fg-primary tabular-nums">{totalValue}</span>
                 </div>
 
                 <div className="mt-2 flex items-center justify-between text-xs">
                     <div className="flex flex-col">
-                        <span className="text-gray-400">{getDateLabel()}</span>
-                        <span className="font-medium text-gray-700">{primaryDate}</span>
+                        <span className="text-fg-tertiary">{getDateLabel()}</span>
+                        <span className="font-medium text-fg-secondary">{primaryDate}</span>
                     </div>
                 </div>
             </div>
 
             {/* Status Footer */}
-            <div className={`mt-1 inline-flex w-fit items-center rounded-md px-2 py-1 text-xs font-medium ${getStatusColor(status)}`}>
+            <div className={`mt-1 inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(status)}`}>
                 {status}
             </div>
         </div>

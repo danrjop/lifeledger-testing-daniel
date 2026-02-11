@@ -25,7 +25,7 @@ export default function DashboardLayout({
   if (!checked) return null;
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-bg-primary">
       <DashboardSidebar />
       <div className="flex flex-1 flex-col min-w-0">
         <DashboardHeader />

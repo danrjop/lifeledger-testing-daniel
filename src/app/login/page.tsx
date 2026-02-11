@@ -19,23 +19,23 @@ export default function LoginPage() {
 
   if (isLoggingIn) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white">
-        <p className="text-lg text-gray-600">Simulating Auth Login...</p>
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-lg text-fg-secondary">Simulating Auth Login...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen">
       <Navbar />
-      <main className="flex flex-col items-center justify-center px-8 py-24">
-        <h1 className="text-3xl font-bold text-gray-900">Login</h1>
-        <p className="mt-2 text-gray-600">
+      <main className="flex flex-col items-center justify-center px-8 py-28">
+        <h1 className="text-3xl font-semibold text-fg-primary tracking-tight">Login</h1>
+        <p className="mt-2 text-fg-secondary">
           Sign in to access your dashboard.
         </p>
         <button
           onClick={handleLogin}
-          className="mt-8 rounded bg-blue-600 px-6 py-3 text-white hover:bg-blue-700"
+          className="mt-8 bg-accent text-accent-fg rounded-xl px-5 py-2.5 font-medium hover:bg-accent-hover transition-all duration-200 ease-out motion-safe:hover:scale-[1.02] motion-safe:active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent min-h-11"
         >
           Login with Cognito
         </button>

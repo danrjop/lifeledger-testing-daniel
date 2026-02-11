@@ -1,26 +1,79 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Backgrounds */
+  --bg-primary: #FAF9F0;
+  --bg-secondary: #F3F1E8;
+  --bg-tertiary: #ECEADF;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Foregrounds */
+  --fg-primary: #1A1A17;
+  --fg-secondary: #5C5B53;
+  --fg-tertiary: #8D8C83;
+
+  /* Accent (Sage) */
+  --accent: #6B8072;
+  --accent-hover: #5A6F61;
+  --accent-light: #E2EBE5;
+  --accent-fg: #FFFFFF;
+
+  /* Semantic */
+  --success: #3D8B6E;
+  --warning: #D4A03C;
+  --danger: #C75450;
+  --info: #5B7FA5;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg-primary: #1A1916;
+    --bg-secondary: #23221C;
+    --bg-tertiary: #2E2D26;
+    --fg-primary: #EDECE4;
+    --fg-secondary: #A8A79F;
+    --fg-tertiary: #6E6D66;
+    --accent-light: #2E3D34;
+    --accent-fg: #EDECE4;
   }
 }
 
+@theme inline {
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-tertiary: var(--bg-tertiary);
+  --color-fg-primary: var(--fg-primary);
+  --color-fg-secondary: var(--fg-secondary);
+  --color-fg-tertiary: var(--fg-tertiary);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-light: var(--accent-light);
+  --color-accent-fg: var(--accent-fg);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg-primary);
+  color: var(--fg-primary);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes page-enter {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  main {
+    animation: page-enter 400ms ease-out;
+  }
 }

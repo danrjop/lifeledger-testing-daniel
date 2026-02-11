@@ -7,9 +7,9 @@ export default function EmptyState({ onUpload }: EmptyStateProps) {
         <div className="flex h-full flex-col items-center justify-center">
             <button
                 onClick={onUpload}
-                className="group flex flex-col items-center gap-4 p-12 transition-all hover:scale-105"
+                className="group flex flex-col items-center gap-4 p-12 transition-all duration-200 ease-out motion-safe:hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
-                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100 group-hover:bg-blue-100 group-hover:ring-blue-200">
+                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-accent-light text-accent ring-1 ring-accent/20 group-hover:bg-accent/20 group-hover:ring-accent/30 transition-colors duration-200">
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
@@ -25,7 +25,7 @@ export default function EmptyState({ onUpload }: EmptyStateProps) {
                         />
                     </svg>
                 </div>
-                <span className="text-xl font-medium text-gray-600 group-hover:text-gray-900">
+                <span className="text-xl font-medium text-fg-secondary group-hover:text-fg-primary transition-colors duration-200">
                     Upload Pictures
                 </span>
             </button>

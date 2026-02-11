@@ -45,12 +45,21 @@ export default function DocumentViewer({ documentId, onClose, highlightBoxes }: 
         }
     };
 
+    const getTypeColor = () => {
+        switch (currentDoc.type) {
+            case "Receipt": return "bg-success/10 text-success";
+            case "Subscription": return "bg-info/10 text-info";
+            case "Fine": return "bg-danger/10 text-danger";
+            default: return "bg-bg-tertiary text-fg-secondary";
+        }
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
             {/* Close Button */}
             <button
                 onClick={onClose}
-                className="absolute top-4 right-4 z-50 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+                className="absolute top-4 right-4 z-50 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -60,7 +69,7 @@ export default function DocumentViewer({ documentId, onClose, highlightBoxes }: 
             {/* Navigation Arrows */}
             <button
                 onClick={handlePrev}
-                className="absolute left-4 z-50 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"
+                className="absolute left-4 z-50 rounded-full bg-white/10 p-3 text-white hover:bg-white/20 transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
@@ -69,7 +78,7 @@ export default function DocumentViewer({ documentId, onClose, highlightBoxes }: 
 
             <button
                 onClick={handleNext}
-                className="absolute right-4 z-50 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"
+                className="absolute right-4 z-50 rounded-full bg-white/10 p-3 text-white hover:bg-white/20 transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
                     <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
@@ -80,7 +89,7 @@ export default function DocumentViewer({ documentId, onClose, highlightBoxes }: 
             <div className="flex h-full w-full max-w-7xl gap-6 p-6">
 
                 {/* Image Area */}
-                <div className="flex-1 flex items-center justify-center overflow-hidden rounded-xl bg-black/50 relative group">
+                <div className="flex-1 flex items-center justify-center overflow-hidden rounded-2xl bg-black/50 relative group">
                     <div
                         ref={containerRef}
                         className={`relative cursor-zoom-in transition-transform duration-300 ease-out ${scale > 1 ? "cursor-zoom-out" : ""}`}
@@ -96,7 +105,7 @@ export default function DocumentViewer({ documentId, onClose, highlightBoxes }: 
                         {showBoxes && highlightBoxes.map((box, idx) => (
                             <div
                                 key={idx}
-                                className="absolute border-2 border-blue-500 bg-blue-500/20 z-10"
+                                className="absolute border-2 border-accent bg-accent/20 z-10"
                                 style={{
                                     top: `${box.y}%`,
                                     left: `${box.x}%`,
@@ -105,7 +114,7 @@ export default function DocumentViewer({ documentId, onClose, highlightBoxes }: 
                                 }}
                             >
                                 {box.label && (
-                                    <span className="absolute -top-8 left-0 bg-blue-600 text-white text-lg px-2 py-0.5 rounded shadow-sm whitespace-nowrap">
+                                    <span className="absolute -top-8 left-0 bg-accent text-accent-fg text-lg px-2 py-0.5 rounded shadow-sm whitespace-nowrap">
                                         {box.label}
                                     </span>
                                 )}
@@ -118,45 +127,42 @@ export default function DocumentViewer({ documentId, onClose, highlightBoxes }: 
                 </div>
 
                 {/* Side Panel (Info) */}
-                <div className="w-96 flex flex-col gap-6 rounded-xl bg-white p-6 shadow-xl overflow-y-auto">
+                <div className="w-96 flex flex-col gap-6 rounded-2xl bg-bg-secondary border border-bg-tertiary/50 p-6 overflow-y-auto">
                     <div>
                         <div className="flex justify-between items-start mb-2">
-                            <div className={`text-xs font-bold px-2 py-0.5 rounded-md uppercase tracking-wide ${currentDoc.type === "Receipt" ? "bg-green-100 text-green-700" :
-                                currentDoc.type === "Subscription" ? "bg-purple-100 text-purple-700" :
-                                    "bg-red-100 text-red-700"
-                                }`}>
+                            <div className={`text-xs font-bold px-2 py-0.5 rounded-md uppercase tracking-wide ${getTypeColor()}`}>
                                 {currentDoc.type}
                             </div>
-                            <span className="text-sm text-gray-400">{currentDoc.primaryDate}</span>
+                            <span className="text-sm text-fg-tertiary">{currentDoc.primaryDate}</span>
                         </div>
-                        <h2 className="text-2xl font-bold text-gray-900 leading-tight">{currentDoc.primaryEntity}</h2>
+                        <h2 className="text-2xl font-semibold text-fg-primary leading-tight tracking-tight">{currentDoc.primaryEntity}</h2>
                         {currentDoc.secondaryEntity && (
-                            <p className="text-gray-500 font-medium">{currentDoc.secondaryEntity}</p>
+                            <p className="text-fg-secondary font-medium">{currentDoc.secondaryEntity}</p>
                         )}
-                        <div className="mt-4 text-3xl font-bold text-gray-900">{currentDoc.totalValue}</div>
+                        <div className="mt-4 text-3xl font-semibold text-fg-primary tabular-nums">{currentDoc.totalValue}</div>
                     </div>
 
-                    <div className="h-px bg-gray-100"></div>
+                    <div className="h-px bg-bg-tertiary"></div>
 
                     {/* Meta Grid */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="flex flex-col">
-                            <span className="text-xs text-gray-400 uppercase">Status</span>
-                            <span className="font-medium text-gray-800">{currentDoc.status}</span>
+                            <span className="text-xs text-fg-tertiary uppercase tracking-wide">Status</span>
+                            <span className="font-medium text-fg-primary">{currentDoc.status}</span>
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-xs text-gray-400 uppercase">Type</span>
-                            <span className="font-medium text-gray-800">{currentDoc.type}</span>
+                            <span className="text-xs text-fg-tertiary uppercase tracking-wide">Type</span>
+                            <span className="font-medium text-fg-primary">{currentDoc.type}</span>
                         </div>
                     </div>
 
                     {currentDoc.metadata && (
                         <div className="flex flex-col gap-2">
-                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Details</h3>
+                            <h3 className="text-xs font-bold text-fg-tertiary uppercase tracking-wider">Details</h3>
                             {Object.entries(currentDoc.metadata).map(([key, value]) => (
-                                <div key={key} className="flex justify-between text-sm py-1 border-b border-gray-50 last:border-0">
-                                    <span className="text-gray-500">{key}</span>
-                                    <span className="font-medium text-gray-900">{value}</span>
+                                <div key={key} className="flex justify-between text-sm py-1 border-b border-bg-tertiary/50 last:border-0">
+                                    <span className="text-fg-secondary">{key}</span>
+                                    <span className="font-medium text-fg-primary">{value}</span>
                                 </div>
                             ))}
                         </div>
@@ -164,15 +170,15 @@ export default function DocumentViewer({ documentId, onClose, highlightBoxes }: 
 
                     {currentDoc.lineItems && (
                         <div className="flex flex-col gap-3">
-                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Items</h3>
+                            <h3 className="text-xs font-bold text-fg-tertiary uppercase tracking-wider">Items</h3>
                             <ul className="text-sm space-y-2">
                                 {currentDoc.lineItems.map((item, idx) => (
                                     <li key={idx} className="flex justify-between items-start">
                                         <div className="flex gap-2">
-                                            <span className="text-gray-400 font-medium w-4">{item.qty}x</span>
-                                            <span className="text-gray-700 line-clamp-2">{item.description}</span>
+                                            <span className="text-fg-tertiary font-medium w-4">{item.qty}x</span>
+                                            <span className="text-fg-secondary line-clamp-2">{item.description}</span>
                                         </div>
-                                        <span className="font-medium text-gray-900 tabular-nums">{item.amount}</span>
+                                        <span className="font-medium text-fg-primary tabular-nums">{item.amount}</span>
                                     </li>
                                 ))}
                             </ul>
