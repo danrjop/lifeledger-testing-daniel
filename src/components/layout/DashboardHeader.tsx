@@ -1,13 +1,29 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
 interface DashboardHeaderProps {
   onUploadClick: () => void;
 }
 
 export default function DashboardHeader({ onUploadClick }: DashboardHeaderProps) {
+  const [searchValue, setSearchValue] = useState("");
+  const router = useRouter();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = searchValue.trim();
+    if (trimmed) {
+      router.push(`/dashboard/search?q=${encodeURIComponent(trimmed)}`);
+    }
+  };
+
   return (
     <header className="sticky top-0 z-30 flex items-center gap-4 border-b border-bg-tertiary/50 bg-bg-primary/80 backdrop-blur-md px-8 py-3">
       {/* Search Bar — centered, prominent */}
       <div className="flex-1 max-w-2xl mx-auto">
-        <div className="relative">
+        <form onSubmit={handleSearch} className="relative">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -20,10 +36,12 @@ export default function DashboardHeader({ onUploadClick }: DashboardHeaderProps)
           </svg>
           <input
             type="text"
-            placeholder="Search your documents..."
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            placeholder="Search for documents or ask questions"
             className="w-full rounded-xl bg-bg-secondary border border-bg-tertiary pl-12 pr-5 py-3 text-lg text-fg-primary placeholder:text-fg-tertiary focus:border-accent focus:ring-2 focus:ring-accent-light transition-colors duration-200"
           />
-        </div>
+        </form>
       </div>
 
       {/* Action Buttons */}
