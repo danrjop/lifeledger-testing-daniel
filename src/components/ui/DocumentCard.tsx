@@ -2,9 +2,13 @@ import { Document } from "@/data/documents";
 
 interface DocumentCardProps extends Document {
     onClick?: () => void;
+    isSelectMode?: boolean;
+    isSelected?: boolean;
+    onSelect?: (id: string) => void;
 }
 
 export default function DocumentCard({
+    id,
     type,
     primaryEntity,
     secondaryEntity,
@@ -12,7 +16,10 @@ export default function DocumentCard({
     primaryDate,
     status,
     fileUrl,
-    onClick
+    onClick,
+    isSelectMode = false,
+    isSelected = false,
+    onSelect,
 }: DocumentCardProps) {
 
     // Status color mapping
@@ -44,11 +51,42 @@ export default function DocumentCard({
         }
     };
 
+    const handleClick = () => {
+        if (isSelectMode && onSelect) {
+            onSelect(id);
+        } else if (onClick) {
+            onClick();
+        }
+    };
+
     return (
         <div
-            onClick={onClick}
-            className="group relative flex flex-col gap-3 rounded-2xl border border-bg-tertiary/50 bg-bg-secondary p-6 transition-colors duration-200 hover:border-bg-tertiary cursor-pointer"
+            onClick={handleClick}
+            className={`group relative flex flex-col gap-3 rounded-2xl border bg-bg-secondary p-6 transition-colors duration-200 cursor-pointer ${
+                isSelected
+                    ? "border-accent ring-2 ring-accent/30"
+                    : "border-bg-tertiary/50 hover:border-bg-tertiary"
+            }`}
         >
+            {/* Selection Checkbox */}
+            {isSelectMode && (
+                <div className="absolute top-3 left-3 z-10">
+                    <div
+                        className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${
+                            isSelected
+                                ? "bg-accent border-accent"
+                                : "bg-bg-primary/80 border-bg-tertiary hover:border-fg-secondary"
+                        }`}
+                    >
+                        {isSelected && (
+                            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* Image Preview */}
             <div className="relative h-32 w-full overflow-hidden rounded-xl bg-bg-tertiary">
                 <img

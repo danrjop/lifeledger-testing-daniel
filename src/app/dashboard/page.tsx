@@ -7,7 +7,7 @@ import EventCard from "@/components/ui/EventCard";
 import DocumentCard from "@/components/ui/DocumentCard";
 import DocumentViewer from "@/components/ui/DocumentViewer";
 import EmptyState from "@/components/views/EmptyState";
-import { uploadAndProcess, getDocuments, type Document } from "@/lib/api-client";
+import { uploadAndProcess, getDocuments, deleteDocuments, type Document } from "@/lib/api-client";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_MIME_PREFIXES = ["image/"];
@@ -18,6 +18,9 @@ export default function DashboardPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [activeFilters, setActiveFilters] = useState<Set<FilterType>>(new Set());
   const [viewerDocId, setViewerDocId] = useState<string | null>(null);
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load documents on mount
@@ -50,6 +53,46 @@ export default function DashboardPage() {
   const triggerUpload = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
+
+  const toggleSelectMode = useCallback(() => {
+    setIsSelectMode((prev) => !prev);
+    setSelectedIds(new Set()); // Clear selection when toggling
+  }, []);
+
+  const handleSelectDocument = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleDeleteSelected = useCallback(async () => {
+    if (selectedIds.size === 0) return;
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ${selectedIds.size} document(s)? This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteDocuments(Array.from(selectedIds));
+      // Remove deleted documents from state
+      setDocuments((prev) => prev.filter((doc) => !selectedIds.has(doc.id)));
+      setSelectedIds(new Set());
+      setIsSelectMode(false);
+    } catch (error) {
+      console.error("Delete failed:", error);
+      alert("Failed to delete documents. Please try again.");
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [selectedIds]);
 
   const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -108,7 +151,37 @@ export default function DashboardPage() {
       />
 
       <div className="flex flex-1 flex-col min-w-0">
-        <DashboardHeader onUploadClick={triggerUpload} />
+        <DashboardHeader onUploadClick={triggerUpload}>
+          {/* Select/Delete Controls */}
+          <div className="flex items-center gap-2">
+            {isSelectMode && selectedIds.size > 0 && (
+              <button
+                onClick={handleDeleteSelected}
+                disabled={isDeleting}
+                className="flex items-center gap-2 px-4 py-2 bg-error text-white rounded-lg hover:bg-error/90 transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                )}
+                Delete ({selectedIds.size})
+              </button>
+            )}
+            <button
+              onClick={toggleSelectMode}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                isSelectMode
+                  ? "bg-fg-secondary text-white"
+                  : "bg-bg-tertiary text-fg-secondary hover:bg-bg-tertiary/80"
+              }`}
+            >
+              {isSelectMode ? "Cancel" : "Select"}
+            </button>
+          </div>
+        </DashboardHeader>
 
         <main className="flex-1 overflow-auto p-8">
           {/* Event Radar */}
@@ -156,6 +229,9 @@ export default function DashboardPage() {
                     key={doc.id}
                     {...doc}
                     onClick={() => setViewerDocId(doc.id)}
+                    isSelectMode={isSelectMode}
+                    isSelected={selectedIds.has(doc.id)}
+                    onSelect={handleSelectDocument}
                   />
                 ))}
               </div>

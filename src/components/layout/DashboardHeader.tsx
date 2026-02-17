@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 
 interface DashboardHeaderProps {
   onUploadClick: () => void;
+  children?: React.ReactNode;
 }
 
-export default function DashboardHeader({ onUploadClick }: DashboardHeaderProps) {
+export default function DashboardHeader({ onUploadClick, children }: DashboardHeaderProps) {
   const [searchValue, setSearchValue] = useState("");
   const router = useRouter();
 
@@ -46,6 +47,9 @@ export default function DashboardHeader({ onUploadClick }: DashboardHeaderProps)
 
       {/* Action Buttons */}
       <div className="flex items-center gap-2">
+        {/* Custom action buttons (e.g., select/delete) */}
+        {children}
+
         {/* Upload / Plus Button */}
         <button
           onClick={onUploadClick}

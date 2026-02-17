@@ -136,3 +136,23 @@ export async function askAgent(question: string): Promise<AskResponse> {
     body: JSON.stringify({ question }),
   });
 }
+
+export interface DeleteResponse {
+  deleted_count: number;
+  s3_deleted: number;
+  s3_errors: number;
+  message: string;
+}
+
+/**
+ * Delete multiple documents.
+ */
+export async function deleteDocuments(
+  documentIds: string[]
+): Promise<DeleteResponse> {
+  return apiCall<DeleteResponse>("/documents", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ document_ids: documentIds.map(Number) }),
+  });
+}
