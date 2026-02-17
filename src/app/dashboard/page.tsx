@@ -285,6 +285,7 @@ export default function DashboardPage() {
         <DocumentViewer
           documentId={viewerDocId}
           onClose={() => setViewerDocId(null)}
+          documents={documents}
         />
       )}
     </div>

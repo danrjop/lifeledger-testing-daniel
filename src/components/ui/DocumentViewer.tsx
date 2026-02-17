@@ -1,16 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import { Document } from "@/data/documents";
-import { documents } from "@/data/documents";
 
 interface DocumentViewerProps {
     documentId: string;
     onClose: () => void;
+    documents: Document[];
     highlightBoxes?: { x: number; y: number; width: number; height: number; label?: string }[];
 }
 
-export default function DocumentViewer({ documentId, onClose, highlightBoxes }: DocumentViewerProps) {
+export default function DocumentViewer({ documentId, onClose, documents, highlightBoxes }: DocumentViewerProps) {
     const [currentDocId, setCurrentDocId] = useState(documentId);
-    // ...
 
     // Only show boxes if we are on the initial doc (since boxes are specific to it)
     const showBoxes = highlightBoxes && currentDocId === documentId;
