@@ -74,6 +74,7 @@ function SearchResults() {
         <DocumentViewer
           documentId={viewerDocId}
           onClose={() => setViewerDocId(null)}
+          documents={results}
         />
       )}
     </div>
