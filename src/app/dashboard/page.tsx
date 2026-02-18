@@ -161,18 +161,22 @@ export default function DashboardPage() {
       }
     }
 
-    // Poll for radar updates (5s interval, 6 polls = 30s total)
-    // Crawler runs in background after OCR completes
+    // Poll for document and radar updates (5s interval, 6 polls = 30s total)
+    // OCR and crawler run in background after upload
     if (uploadSucceeded) {
       let pollCount = 0;
       const pollInterval = setInterval(async () => {
         pollCount++;
-        if (pollCount >= 6) {
+        if (pollCount >= 12) {
           clearInterval(pollInterval);
           return;
         }
         try {
-          const radar = await getRadarEvents(30);
+          const [docs, radar] = await Promise.all([
+            getDocuments(),
+            getRadarEvents(30),
+          ]);
+          setDocuments(docs);
           setRadarEvents(radar.events);
         } catch (e) {
           // Silently ignore polling errors
