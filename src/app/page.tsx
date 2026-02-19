@@ -11,7 +11,7 @@ export default function Home() {
 
       {/* Hero — full viewport */}
       <section className="relative h-screen overflow-hidden">
-        <main className="relative flex flex-col items-center justify-center px-4 md:px-8 pt-20 pb-[200px] md:pb-[360px] h-full">
+        <main className="relative z-40 flex flex-col items-center justify-center px-4 md:px-8 pt-20 pb-[200px] md:pb-[360px] h-full">
           <h1 className="font-serif text-fg-primary tracking-display text-center leading-[1.05]" style={{ fontSize: "clamp(2rem, 1rem + 5vw, 5.5rem)" }}>
             Find Everything, Miss Nothing
           </h1>
