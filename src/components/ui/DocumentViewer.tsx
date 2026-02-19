@@ -85,10 +85,10 @@ export default function DocumentViewer({ documentId, onClose, documents, highlig
                 </svg>
             </button>
 
-            {/* Navigation Arrows */}
+            {/* Navigation Arrows - hidden on mobile, visible on md+ */}
             <button
                 onClick={handlePrev}
-                className="absolute left-4 z-50 rounded-full bg-white/10 p-3 text-white hover:bg-white/20 transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="hidden md:block absolute left-4 z-50 rounded-full bg-white/10 p-3 text-white hover:bg-white/20 transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
@@ -97,7 +97,7 @@ export default function DocumentViewer({ documentId, onClose, documents, highlig
 
             <button
                 onClick={handleNext}
-                className="absolute right-4 z-50 rounded-full bg-white/10 p-3 text-white hover:bg-white/20 transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="hidden md:block absolute right-4 z-50 rounded-full bg-white/10 p-3 text-white hover:bg-white/20 transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
                     <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
@@ -105,10 +105,10 @@ export default function DocumentViewer({ documentId, onClose, documents, highlig
             </button>
 
             {/* Content Container */}
-            <div className="flex h-full w-full max-w-7xl gap-6 p-6">
+            <div className="flex flex-col md:flex-row h-full w-full max-w-7xl gap-4 md:gap-6 p-4 md:p-6 overflow-auto">
 
                 {/* Image Area */}
-                <div className="flex-1 flex items-center justify-center overflow-hidden rounded-2xl bg-black/50 relative group">
+                <div className="flex-1 flex items-center justify-center overflow-hidden rounded-2xl bg-black/50 relative group min-h-[40vh] md:min-h-0">
                     <div
                         ref={containerRef}
                         className={`relative cursor-zoom-in transition-transform duration-300 ease-out ${scale > 1 ? "cursor-zoom-out" : ""}`}
@@ -146,7 +146,7 @@ export default function DocumentViewer({ documentId, onClose, documents, highlig
                 </div>
 
                 {/* Side Panel (Info) */}
-                <div className="w-96 flex flex-col gap-6 rounded-2xl bg-bg-secondary border border-bg-tertiary/50 p-6 overflow-y-auto">
+                <div className="w-full md:w-96 flex-shrink-0 flex flex-col gap-4 md:gap-6 rounded-2xl bg-bg-secondary border border-bg-tertiary/50 p-4 md:p-6 overflow-y-auto max-h-[50vh] md:max-h-none">
                     <div>
                         <div className="flex justify-between items-start mb-2">
                             <div className={`text-xs font-bold px-2 py-0.5 rounded-md uppercase tracking-wide ${getTypeColor()}`}>
