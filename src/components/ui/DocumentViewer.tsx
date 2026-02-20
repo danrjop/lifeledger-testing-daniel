@@ -1,31 +1,106 @@
 import { useState, useRef, useEffect } from "react";
 import { Document } from "@/lib/types";
-import { getRelatedDocuments, type RelatedDocument } from "@/lib/api-client";
+import { getRelatedDocuments, getDocument, type RelatedDocument, type OcrBlock } from "@/lib/api-client";
+
+interface HighlightBox {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    label?: string;
+}
 
 interface DocumentViewerProps {
     documentId: string;
     onClose: () => void;
     documents: Document[];
-    highlightBoxes?: { x: number; y: number; width: number; height: number; label?: string }[];
+    highlightBoxes?: HighlightBox[];
+    searchQuery?: string;  // If provided, will highlight matching OCR regions
 }
 
-export default function DocumentViewer({ documentId, onClose, documents, highlightBoxes }: DocumentViewerProps) {
+// Convert 4-point polygon to percentage-based rectangle
+function bboxToPercentRect(
+    bbox: number[][],
+    imgWidth: number,
+    imgHeight: number
+): { x: number; y: number; width: number; height: number } {
+    const minX = Math.min(bbox[0][0], bbox[3][0]);
+    const maxX = Math.max(bbox[1][0], bbox[2][0]);
+    const minY = Math.min(bbox[0][1], bbox[1][1]);
+    const maxY = Math.max(bbox[2][1], bbox[3][1]);
+    return {
+        x: (minX / imgWidth) * 100,
+        y: (minY / imgHeight) * 100,
+        width: ((maxX - minX) / imgWidth) * 100,
+        height: ((maxY - minY) / imgHeight) * 100,
+    };
+}
+
+// Filter OCR blocks that match any query term (case-insensitive)
+function filterBlocksByQuery(blocks: OcrBlock[], query: string): OcrBlock[] {
+    const terms = query.toLowerCase().split(/\s+/).filter(t => t.length > 2);
+    if (terms.length === 0) return [];
+    return blocks.filter(block => {
+        const text = block.text.toLowerCase();
+        return terms.some(term => text.includes(term));
+    });
+}
+
+export default function DocumentViewer({ documentId, onClose, documents, highlightBoxes, searchQuery }: DocumentViewerProps) {
     const [currentDocId, setCurrentDocId] = useState(documentId);
     const [relatedDocs, setRelatedDocs] = useState<RelatedDocument[]>([]);
     const [loadingRelated, setLoadingRelated] = useState(false);
 
+    // OCR bounding box state
+    const [ocrBlocks, setOcrBlocks] = useState<OcrBlock[]>([]);
+    const [imgDimensions, setImgDimensions] = useState<{ width: number; height: number } | null>(null);
+
     // Only show boxes if we are on the initial doc (since boxes are specific to it)
-    const showBoxes = highlightBoxes && currentDocId === documentId;
+    const showBoxes = (highlightBoxes || (searchQuery && ocrBlocks.length > 0 && imgDimensions)) && currentDocId === documentId;
     const [scale, setScale] = useState(1);
     const containerRef = useRef<HTMLDivElement>(null);
+
+    // Compute highlight boxes from search query + OCR blocks
+    const computedBoxes: HighlightBox[] = (() => {
+        if (highlightBoxes) return highlightBoxes;
+        if (!searchQuery || !imgDimensions || ocrBlocks.length === 0) return [];
+        const filtered = filterBlocksByQuery(ocrBlocks, searchQuery);
+        return filtered.map(block => ({
+            ...bboxToPercentRect(block.bbox, imgDimensions.width, imgDimensions.height),
+            label: block.text,
+        }));
+    })();
 
     const currentIndex = documents.findIndex(d => d.id === currentDocId);
     const currentDoc = documents[currentIndex];
 
-    // Reset zoom when doc changes
+    // Reset zoom and image dimensions when doc changes
     useEffect(() => {
         setScale(1);
+        setImgDimensions(null);
     }, [currentDocId]);
+
+    // Fetch OCR blocks when searchQuery is provided (for initial doc only)
+    useEffect(() => {
+        if (!searchQuery || documentId !== currentDocId) {
+            setOcrBlocks([]);
+            return;
+        }
+        getDocument(documentId)
+            .then((doc) => {
+                setOcrBlocks(doc.ocr_blocks || []);
+            })
+            .catch((e) => {
+                console.error("Failed to fetch ocr_blocks:", e);
+                setOcrBlocks([]);
+            });
+    }, [searchQuery, documentId, currentDocId]);
+
+    // Handle image load to get natural dimensions
+    const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+        const img = e.currentTarget;
+        setImgDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+    };
 
     // Fetch related documents when currentDocId changes
     useEffect(() => {
@@ -119,9 +194,10 @@ export default function DocumentViewer({ documentId, onClose, documents, highlig
                             src={currentDoc.fileUrl}
                             alt={currentDoc.primaryEntity}
                             className="max-h-[85vh] max-w-full object-contain shadow-2xl"
+                            onLoad={handleImageLoad}
                         />
                         {/* Overlay Boxes */}
-                        {showBoxes && highlightBoxes.map((box, idx) => (
+                        {showBoxes && computedBoxes.map((box, idx) => (
                             <div
                                 key={idx}
                                 className="absolute border-2 border-accent bg-accent/20 z-10"
