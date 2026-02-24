@@ -67,15 +67,30 @@ export interface Document {
   totalValue: string;
 }
 
+export interface SafetyInfo {
+  strategy: "REFUSE_ONLY" | "REFUSE_REDIRECT" | "DEESCALATE_SUPPORT" | "ASK_CLARIFY_SAFE";
+  message: string;
+  detail?: string | null;
+}
+
+export interface GroundednessInfo {
+  ungrounded_pct: number;
+  message: string;
+}
+
 export interface SearchResult {
   answer: string;
   documents: Document[];
   query: string;
+  safety?: SafetyInfo | null;
+  groundedness?: GroundednessInfo | null;
 }
 
 export interface AskResponse {
   answer: string;
   sources: string[];
+  safety?: SafetyInfo | null;
+  groundedness?: GroundednessInfo | null;
 }
 
 /**
