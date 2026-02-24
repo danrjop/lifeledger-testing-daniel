@@ -6,7 +6,7 @@ import SearchHeader from "@/components/search/SearchHeader";
 import AIAnswerBox from "@/components/search/AIAnswerBox";
 import EvidenceSection from "@/components/search/EvidenceSection";
 import DocumentViewer from "@/components/ui/DocumentViewer";
-import { searchDocuments, type Document } from "@/lib/api-client";
+import { searchDocuments, regenerateAnswer, type Document } from "@/lib/api-client";
 
 function SearchResults() {
   const searchParams = useSearchParams();
@@ -18,6 +18,7 @@ function SearchResults() {
   const [results, setResults] = useState<Document[]>([]);
   const [answer, setAnswer] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   // Fetch search results from API
   useEffect(() => {
@@ -46,6 +47,20 @@ function SearchResults() {
   const handleDone = useCallback(() => setPhase("done"), []);
   const handleBack = useCallback(() => router.push("/dashboard"), [router]);
 
+  const handleRegenerate = useCallback(async () => {
+    if (!query || isRegenerating) return;
+    setIsRegenerating(true);
+    try {
+      const result = await regenerateAnswer(query, answer);
+      setAnswer(result.answer);
+      setPhase("answering");
+    } catch (err) {
+      console.error("Regenerate failed:", err);
+    } finally {
+      setIsRegenerating(false);
+    }
+  }, [query, answer, isRegenerating]);
+
   return (
     <div className="flex h-full flex-col">
       <SearchHeader
@@ -61,7 +76,13 @@ function SearchResults() {
           </div>
         ) : (
           <>
-            <AIAnswerBox phase={phase} answer={answer} onDone={handleDone} />
+            <AIAnswerBox
+              phase={phase}
+              answer={answer}
+              onDone={handleDone}
+              onRegenerate={handleRegenerate}
+              isRegenerating={isRegenerating}
+            />
             <EvidenceSection
               documents={results}
               onDocumentClick={(id) => setViewerDocId(id)}

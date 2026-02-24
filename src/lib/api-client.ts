@@ -223,3 +223,18 @@ export async function getRelatedDocuments(
 export async function getDocument(docId: string): Promise<DocumentDetail> {
   return apiCall<DocumentDetail>(`/documents/${docId}`);
 }
+
+/**
+ * Regenerate AI answer for a search query.
+ * Logs the rejected answer for quality tracking.
+ */
+export async function regenerateAnswer(
+  query: string,
+  rejectedAnswer: string
+): Promise<{ answer: string }> {
+  return apiCall<{ answer: string }>("/regenerate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query, rejected_answer: rejectedAnswer }),
+  });
+}
