@@ -8,7 +8,7 @@ import DocumentCard from "@/components/ui/DocumentCard";
 import DocumentViewer from "@/components/ui/DocumentViewer";
 import ReviewModal from "@/components/ui/ReviewModal";
 import EmptyState from "@/components/views/EmptyState";
-import { uploadAndProcess, getDocuments, deleteDocuments, getRadarEvents, reviewDocument, type Document, type RadarEvent } from "@/lib/api-client";
+import { uploadAndProcess, getDocuments, deleteDocuments, getRadarEvents, reviewDocument, type Document, type RadarEvent, type RejectedFile } from "@/lib/api-client";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_MIME_PREFIXES = ["image/"];
@@ -25,6 +25,7 @@ export default function DashboardPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [rejectedFiles, setRejectedFiles] = useState<RejectedFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load documents and radar events on mount
@@ -142,8 +143,11 @@ export default function DashboardPage() {
     let uploadSucceeded = false;
     try {
       // Upload and process all files at once
-      await uploadAndProcess(validFiles);
+      const result = await uploadAndProcess(validFiles);
       uploadSucceeded = true;
+      if (result.rejected && result.rejected.length > 0) {
+        setRejectedFiles(result.rejected);
+      }
     } catch (error) {
       console.error("Upload failed:", error);
       alert("Upload failed. Please try again.");
@@ -254,6 +258,37 @@ export default function DashboardPage() {
         </DashboardHeader>
 
         <main className="flex-1 overflow-auto p-4 md:p-8">
+          {/* Rejected Files Banner */}
+          {rejectedFiles.length > 0 && (
+            <div className="mb-6 rounded-xl bg-warning/10 border border-warning/20 p-4 animate-fade-in">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-warning">
+                    {rejectedFiles.length === 1
+                      ? "1 file was not uploaded"
+                      : `${rejectedFiles.length} files were not uploaded`}
+                  </p>
+                  <ul className="mt-2 space-y-1">
+                    {rejectedFiles.map((file, i) => (
+                      <li key={i} className="text-sm text-warning/80">
+                        <span className="font-medium">{file.filename}</span> — {file.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <button
+                  onClick={() => setRejectedFiles([])}
+                  className="flex-shrink-0 p-1 rounded-lg text-warning/60 hover:text-warning hover:bg-warning/10 transition-colors"
+                  aria-label="Dismiss"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Event Radar - Only show if there are upcoming events */}
           {radarEvents.length > 0 && (
             <section className="mb-8">
