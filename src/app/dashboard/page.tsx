@@ -142,7 +142,6 @@ export default function DashboardPage() {
 
     let uploadSucceeded = false;
     try {
-      // Upload and process all files at once
       const result = await uploadAndProcess(validFiles);
       uploadSucceeded = true;
       if (result.rejected && result.rejected.length > 0) {
