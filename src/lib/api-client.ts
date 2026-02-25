@@ -48,10 +48,16 @@ export interface UploadedDoc {
   status: string;
 }
 
+export interface RejectedFile {
+  filename: string;
+  message: string;
+}
+
 export interface UploadAndProcessResponse {
   uploaded: UploadedDoc[];
   count: number;
   message: string;
+  rejected?: RejectedFile[];
 }
 
 export type DocumentType = "Receipt" | "Subscription" | "Invoice" | "Fine" | "Form" | "Other";
@@ -67,15 +73,30 @@ export interface Document {
   totalValue: string;
 }
 
+export interface SafetyInfo {
+  strategy: "REFUSE_ONLY" | "REFUSE_REDIRECT" | "DEESCALATE_SUPPORT" | "ASK_CLARIFY_SAFE";
+  message: string;
+  detail?: string | null;
+}
+
+export interface GroundednessInfo {
+  ungrounded_pct: number;
+  message: string;
+}
+
 export interface SearchResult {
   answer: string;
   documents: Document[];
   query: string;
+  safety?: SafetyInfo | null;
+  groundedness?: GroundednessInfo | null;
 }
 
 export interface AskResponse {
   answer: string;
   sources: string[];
+  safety?: SafetyInfo | null;
+  groundedness?: GroundednessInfo | null;
 }
 
 /**
@@ -195,6 +216,18 @@ export interface RelatedDocument extends Document {
   similarity: number;  // 0-100 percentage
 }
 
+// OCR bounding box as returned from backend
+export interface OcrBlock {
+  text: string;
+  confidence: number;
+  bbox: number[][];  // 4-point polygon: [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]
+}
+
+export interface DocumentDetail extends Document {
+  ocr_blocks?: OcrBlock[];
+  doc_text?: string;
+}
+
 /**
  * Get documents similar to the given document using vector similarity.
  */
@@ -203,4 +236,11 @@ export async function getRelatedDocuments(
   limit: number = 4
 ): Promise<RelatedDocument[]> {
   return apiCall<RelatedDocument[]>(`/documents/${docId}/related?limit=${limit}`);
+}
+
+/**
+ * Get a single document by ID with full details including ocr_blocks.
+ */
+export async function getDocument(docId: string): Promise<DocumentDetail> {
+  return apiCall<DocumentDetail>(`/documents/${docId}`);
 }

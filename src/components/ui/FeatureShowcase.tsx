@@ -31,8 +31,8 @@ export default function FeatureShowcase() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-20 md:py-28">
-      <div className="overflow-hidden rounded-3xl bg-[#1E1D18] px-10 py-20 md:px-20 md:py-28">
+    <section ref={sectionRef} className="px-4 md:px-0 py-20 md:py-28">
+      <div className="overflow-hidden rounded-3xl bg-[#1E1D18] px-6 md:px-10 lg:px-20 py-16 md:py-20 lg:py-28">
         <div className="mx-auto flex max-w-7xl flex-col gap-16 lg:flex-row lg:items-center lg:gap-20">
           {/* Left — text content */}
           <div className="flex-1 space-y-12">

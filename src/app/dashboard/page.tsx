@@ -8,7 +8,7 @@ import DocumentCard from "@/components/ui/DocumentCard";
 import DocumentViewer from "@/components/ui/DocumentViewer";
 import ReviewModal from "@/components/ui/ReviewModal";
 import EmptyState from "@/components/views/EmptyState";
-import { uploadAndProcess, getDocuments, deleteDocuments, getRadarEvents, reviewDocument, type Document, type RadarEvent } from "@/lib/api-client";
+import { uploadAndProcess, getDocuments, deleteDocuments, getRadarEvents, reviewDocument, type Document, type RadarEvent, type RejectedFile } from "@/lib/api-client";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_MIME_PREFIXES = ["image/"];
@@ -24,6 +24,8 @@ export default function DashboardPage() {
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [rejectedFiles, setRejectedFiles] = useState<RejectedFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load documents and radar events on mount
@@ -91,6 +93,9 @@ export default function DashboardPage() {
       await deleteDocuments(Array.from(selectedIds));
       // Remove deleted documents from state
       setDocuments((prev) => prev.filter((doc) => !selectedIds.has(doc.id)));
+      // Refresh radar events (deleted doc may have had a radar event)
+      const radar = await getRadarEvents(30);
+      setRadarEvents(radar.events);
       setSelectedIds(new Set());
       setIsSelectMode(false);
     } catch (error) {
@@ -138,8 +143,11 @@ export default function DashboardPage() {
     let uploadSucceeded = false;
     try {
       // Upload and process all files at once
-      await uploadAndProcess(validFiles);
+      const result = await uploadAndProcess(validFiles);
       uploadSucceeded = true;
+      if (result.rejected && result.rejected.length > 0) {
+        setRejectedFiles(result.rejected);
+      }
     } catch (error) {
       console.error("Upload failed:", error);
       alert("Upload failed. Please try again.");
@@ -199,9 +207,24 @@ export default function DashboardPage() {
       <DashboardSidebar
         activeFilters={activeFilters}
         onFilterToggle={handleFilterToggle}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
 
       <div className="flex flex-1 flex-col min-w-0">
+        {/* Mobile Header Bar */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-bg-tertiary/50 md:hidden">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 rounded-lg hover:bg-bg-tertiary transition-colors"
+            aria-label="Open menu"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-fg-primary">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+          </button>
+          <span className="text-lg font-semibold text-fg-primary">LifeLedger</span>
+        </div>
         <DashboardHeader onUploadClick={triggerUpload}>
           {/* Select/Delete Controls */}
           <div className="flex items-center gap-2">
@@ -234,7 +257,38 @@ export default function DashboardPage() {
           </div>
         </DashboardHeader>
 
-        <main className="flex-1 overflow-auto p-8">
+        <main className="flex-1 overflow-auto p-4 md:p-8">
+          {/* Rejected Files Banner */}
+          {rejectedFiles.length > 0 && (
+            <div className="mb-6 rounded-xl bg-warning/10 border border-warning/20 p-4 animate-fade-in">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-warning">
+                    {rejectedFiles.length === 1
+                      ? "1 file was not uploaded"
+                      : `${rejectedFiles.length} files were not uploaded`}
+                  </p>
+                  <ul className="mt-2 space-y-1">
+                    {rejectedFiles.map((file, i) => (
+                      <li key={i} className="text-sm text-warning/80">
+                        <span className="font-medium">{file.filename}</span> — {file.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <button
+                  onClick={() => setRejectedFiles([])}
+                  className="flex-shrink-0 p-1 rounded-lg text-warning/60 hover:text-warning hover:bg-warning/10 transition-colors"
+                  aria-label="Dismiss"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Event Radar - Only show if there are upcoming events */}
           {radarEvents.length > 0 && (
             <section className="mb-8">
@@ -276,7 +330,7 @@ export default function DashboardPage() {
               </div>
             ) : (
               /* Document Grid */
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
                 {filteredDocuments.map((doc) => (
                   <DocumentCard
                     key={doc.id}

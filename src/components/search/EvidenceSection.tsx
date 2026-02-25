@@ -1,5 +1,5 @@
 import DocumentCard from "@/components/ui/DocumentCard";
-import { type Document } from "@/data/documents";
+import { type Document } from "@/lib/types";
 
 interface EvidenceSectionProps {
   documents: Document[];

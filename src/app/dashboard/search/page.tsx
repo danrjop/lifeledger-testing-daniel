@@ -6,7 +6,7 @@ import SearchHeader from "@/components/search/SearchHeader";
 import AIAnswerBox from "@/components/search/AIAnswerBox";
 import EvidenceSection from "@/components/search/EvidenceSection";
 import DocumentViewer from "@/components/ui/DocumentViewer";
-import { searchDocuments, type Document } from "@/lib/api-client";
+import { searchDocuments, type Document, type SafetyInfo, type GroundednessInfo } from "@/lib/api-client";
 
 function SearchResults() {
   const searchParams = useSearchParams();
@@ -17,6 +17,8 @@ function SearchResults() {
   const [viewerDocId, setViewerDocId] = useState<string | null>(null);
   const [results, setResults] = useState<Document[]>([]);
   const [answer, setAnswer] = useState<string>("");
+  const [safety, setSafety] = useState<SafetyInfo | null>(null);
+  const [groundedness, setGroundedness] = useState<GroundednessInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch search results from API
@@ -34,6 +36,8 @@ function SearchResults() {
       .then((result) => {
         setResults(result.documents);
         setAnswer(result.answer);
+        setSafety(result.safety ?? null);
+        setGroundedness(result.groundedness ?? null);
         setPhase("answering");
       })
       .catch((err) => {
@@ -61,7 +65,7 @@ function SearchResults() {
           </div>
         ) : (
           <>
-            <AIAnswerBox phase={phase} answer={answer} onDone={handleDone} />
+            <AIAnswerBox phase={phase} answer={answer} onDone={handleDone} safety={safety} groundedness={groundedness} />
             <EvidenceSection
               documents={results}
               onDocumentClick={(id) => setViewerDocId(id)}
@@ -75,6 +79,7 @@ function SearchResults() {
           documentId={viewerDocId}
           onClose={() => setViewerDocId(null)}
           documents={results}
+          searchQuery={query}
         />
       )}
     </div>

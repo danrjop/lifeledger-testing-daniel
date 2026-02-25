@@ -236,7 +236,7 @@ export default function HeroGallery() {
               {/* Chat overlay */}
               {isActive && (
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 z-30 flex flex-col items-center gap-2 animate-fade-in"
-                  style={{ width: `${Math.min(360, cardWidth + 40)}px` }}>
+                  style={{ width: "min(90vw, 360px)" }}>
                   {animPhase === "typing-question" && (
                     <div className="bg-white/95 dark:bg-[#2E2D26]/95 backdrop-blur-sm rounded-2xl px-5 py-2.5 shadow-lg border border-black/5 dark:border-white/10 max-w-full flex items-start gap-2.5">
                       <svg className="w-[18px] h-[18px] flex-shrink-0 text-fg-tertiary mt-[3px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

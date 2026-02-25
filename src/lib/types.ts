@@ -25,4 +25,3 @@ export interface Document {
     lineItems?: LineItem[];
     metadata?: DocumentMetadata;
 }
-

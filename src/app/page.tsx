@@ -11,11 +11,11 @@ export default function Home() {
 
       {/* Hero — full viewport */}
       <section className="relative h-screen overflow-hidden">
-        <main className="relative flex flex-col items-center justify-center px-8 pt-20 pb-[360px] h-full">
-          <h1 className="font-serif text-fg-primary tracking-display text-center leading-[1.05] whitespace-nowrap" style={{ fontSize: "clamp(8rem, 2rem + 3.5vw, 5.5rem)" }}>
+        <main className="relative z-40 flex flex-col items-center justify-center px-4 md:px-8 pt-20 pb-[200px] md:pb-[360px] h-full">
+          <h1 className="font-serif text-fg-primary tracking-display text-center leading-[1.05]" style={{ fontSize: "clamp(2rem, 1rem + 5vw, 5.5rem)" }}>
             Find Everything, Miss Nothing
           </h1>
-          <p className="mt-6 text-fg-secondary max-w-lg text-center font-sans" style={{ fontSize: "clamp(1.15rem, 1rem + 0.5vw, 1.4rem)", lineHeight: 1.6 }}>
+          <p className="mt-6 text-fg-secondary max-w-lg text-center font-sans px-4" style={{ fontSize: "clamp(1rem, 0.9rem + 0.5vw, 1.4rem)", lineHeight: 1.6 }}>
             The app that makes your photo library screenshots instantly
             searchable.
           </p>

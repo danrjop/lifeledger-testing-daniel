@@ -16,9 +16,11 @@ const FILTERS: { type: FilterType; label: string }[] = [
 interface DashboardSidebarProps {
   activeFilters: Set<FilterType>;
   onFilterToggle: (filter: FilterType) => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export default function DashboardSidebar({ activeFilters, onFilterToggle }: DashboardSidebarProps) {
+export default function DashboardSidebar({ activeFilters, onFilterToggle, isOpen = false, onClose }: DashboardSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -30,7 +32,20 @@ export default function DashboardSidebar({ activeFilters, onFilterToggle }: Dash
   const isActive = (href: string) => pathname === href;
 
   return (
-    <aside className="flex w-60 flex-col border-r border-bg-tertiary/50 bg-bg-secondary">
+    <>
+      {/* Mobile backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={onClose}
+        />
+      )}
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 w-60 flex-col border-r border-bg-tertiary/50 bg-bg-secondary
+        transform transition-transform duration-300 ease-in-out
+        md:relative md:translate-x-0 md:flex
+        ${isOpen ? 'translate-x-0 flex' : '-translate-x-full hidden md:flex'}
+      `}>
       {/* Logo */}
       <div className="px-6 py-5 text-lg font-semibold text-fg-primary tracking-tight">
         LifeLedger
@@ -107,5 +122,6 @@ export default function DashboardSidebar({ activeFilters, onFilterToggle }: Dash
         </button>
       </div>
     </aside>
+    </>
   );
 }

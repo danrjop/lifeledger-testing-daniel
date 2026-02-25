@@ -3,39 +3,39 @@ import Footer from "@/components/layout/Footer";
 
 const teamMembers = [
   {
-    name: "Team Member",
-    role: "Role Title",
+    name: "Benjamin He",
+    role: "Full-stack, AI engineer, Project Manager",
     image: "/team/placeholder.jpg",
     description:
-      "A short bio about this team member and what they bring to LifeLedger.",
+      "Bio - to be filled",
   },
   {
-    name: "Team Member",
-    role: "Role Title",
+    name: "Daniel Wang",
+    role: "Full-stack, AI engineer",
     image: "/team/placeholder.jpg",
     description:
-      "A short bio about this team member and what they bring to LifeLedger.",
+      "Bio - to be filled",
   },
   {
-    name: "Team Member",
-    role: "Role Title",
+    name: "Viola Qiu",
+    role: "AI engineer, UI/UX designer",
     image: "/team/placeholder.jpg",
     description:
-      "A short bio about this team member and what they bring to LifeLedger.",
+      "Bio - to be filled",
   },
   {
-    name: "Team Member",
-    role: "Role Title",
+    name: "Jiayi Ding",
+    role: "AI engineer, EDA Analysis",
     image: "/team/placeholder.jpg",
     description:
-      "A short bio about this team member and what they bring to LifeLedger.",
+      "Bio - to be filled",
   },
   {
-    name: "Team Member",
-    role: "Role Title",
+    name: "Umesh Kant",
+    role: "AWS, Infra SME engineer",
     image: "/team/placeholder.jpg",
     description:
-      "A short bio about this team member and what they bring to LifeLedger.",
+      "Bio - to be filled",
   },
 ];
 

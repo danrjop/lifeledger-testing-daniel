@@ -1,21 +1,60 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import type { SafetyInfo, GroundednessInfo } from "@/lib/api-client";
 
 interface AIAnswerBoxProps {
   phase: "thinking" | "answering" | "done";
   answer: string;
   onDone: () => void;
+  safety?: SafetyInfo | null;
+  groundedness?: GroundednessInfo | null;
 }
 
-export default function AIAnswerBox({ phase, answer, onDone }: AIAnswerBoxProps) {
+const STRATEGY_STYLES: Record<string, { bg: string; border: string; text: string }> = {
+  REFUSE_ONLY:        { bg: "bg-danger/10", border: "border-danger/20", text: "text-danger" },
+  REFUSE_REDIRECT:    { bg: "bg-warning/10", border: "border-warning/20", text: "text-warning" },
+  DEESCALATE_SUPPORT: { bg: "bg-info/10", border: "border-info/20", text: "text-info" },
+  ASK_CLARIFY_SAFE:   { bg: "bg-warning/10", border: "border-warning/20", text: "text-warning" },
+};
+
+function SafetyBanner({ safety }: { safety: SafetyInfo }) {
+  const styles = STRATEGY_STYLES[safety.strategy] ?? STRATEGY_STYLES.REFUSE_ONLY;
+
+  return (
+    <div className={`rounded-xl ${styles.bg} ${styles.border} border p-4 ${styles.text} animate-fade-in`}>
+      <p className="text-sm font-medium whitespace-pre-line">{safety.message}</p>
+      {safety.detail && (
+        <p className="text-sm mt-2 opacity-80">{safety.detail}</p>
+      )}
+    </div>
+  );
+}
+
+function GroundednessBanner({ groundedness }: { groundedness: GroundednessInfo }) {
+  return (
+    <div className="mt-4 rounded-xl bg-info/10 border border-info/20 p-4 text-info animate-fade-in">
+      <p className="text-sm">{groundedness.message}</p>
+    </div>
+  );
+}
+
+export default function AIAnswerBox({ phase, answer, onDone, safety, groundedness }: AIAnswerBoxProps) {
   const [displayedText, setDisplayedText] = useState("");
+  const isSafetyBlock = !!safety;
 
   const stableOnDone = useCallback(onDone, [onDone]);
 
-  // Typewriter effect
+  // Skip typewriter and signal done immediately for safety blocks
   useEffect(() => {
-    if (phase !== "answering") return;
+    if (isSafetyBlock && phase === "answering") {
+      stableOnDone();
+    }
+  }, [isSafetyBlock, phase, stableOnDone]);
+
+  // Typewriter effect — only for normal answers
+  useEffect(() => {
+    if (isSafetyBlock || phase !== "answering") return;
     let i = 0;
     setDisplayedText("");
     const interval = setInterval(() => {
@@ -27,14 +66,14 @@ export default function AIAnswerBox({ phase, answer, onDone }: AIAnswerBoxProps)
       }
     }, 5);
     return () => clearInterval(interval);
-  }, [phase, answer, stableOnDone]);
+  }, [phase, answer, stableOnDone, isSafetyBlock]);
 
   // Show full text when done
   useEffect(() => {
-    if (phase === "done") {
+    if (phase === "done" && !isSafetyBlock) {
       setDisplayedText(answer);
     }
-  }, [phase, answer]);
+  }, [phase, answer, isSafetyBlock]);
 
   return (
     <section className="mb-8">
@@ -56,7 +95,7 @@ export default function AIAnswerBox({ phase, answer, onDone }: AIAnswerBoxProps)
             />
           </svg>
           <h2 className="text-xs font-bold text-fg-tertiary uppercase tracking-wider">
-            AI Answer
+            Response
           </h2>
         </div>
 
@@ -75,15 +114,24 @@ export default function AIAnswerBox({ phase, answer, onDone }: AIAnswerBoxProps)
             </div>
           )}
 
-          {(phase === "answering" || phase === "done") && (
-            <div className="animate-fade-in">
-              <p className="text-body-lg text-fg-primary leading-relaxed">
-                {displayedText}
-                {phase === "answering" && (
-                  <span className="inline-block w-[2px] h-[16px] bg-accent ml-0.5 align-middle animate-blink" />
-                )}
-              </p>
-            </div>
+          {phase !== "thinking" && isSafetyBlock && (
+            <SafetyBanner safety={safety} />
+          )}
+
+          {phase !== "thinking" && !isSafetyBlock && (
+            <>
+              <div className="animate-fade-in">
+                <p className="text-body-lg text-fg-primary leading-relaxed">
+                  {displayedText}
+                  {phase === "answering" && (
+                    <span className="inline-block w-[2px] h-[16px] bg-accent ml-0.5 align-middle animate-blink" />
+                  )}
+                </p>
+              </div>
+              {phase === "done" && groundedness && (
+                <GroundednessBanner groundedness={groundedness} />
+              )}
+            </>
           )}
         </div>
       </div>

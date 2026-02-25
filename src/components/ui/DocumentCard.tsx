@@ -1,4 +1,4 @@
-import { Document } from "@/data/documents";
+import { Document } from "@/lib/types";
 
 interface DocumentCardProps extends Document {
     onClick?: () => void;
@@ -62,7 +62,7 @@ export default function DocumentCard({
     return (
         <div
             onClick={handleClick}
-            className={`group relative flex flex-col gap-3 rounded-2xl border bg-bg-secondary p-6 transition-colors duration-200 cursor-pointer ${
+            className={`group relative flex flex-col gap-2 md:gap-3 rounded-xl md:rounded-2xl border bg-bg-secondary p-3 md:p-6 transition-colors duration-200 cursor-pointer ${
                 isSelected
                     ? "border-accent ring-2 ring-accent/30"
                     : "border-bg-tertiary/50 hover:border-bg-tertiary"
@@ -70,16 +70,16 @@ export default function DocumentCard({
         >
             {/* Selection Checkbox */}
             {isSelectMode && (
-                <div className="absolute top-3 left-3 z-10">
+                <div className="absolute top-2 left-2 md:top-3 md:left-3 z-10">
                     <div
-                        className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${
+                        className={`w-5 h-5 md:w-6 md:h-6 rounded-md border-2 flex items-center justify-center transition-colors ${
                             isSelected
                                 ? "bg-accent border-accent"
                                 : "bg-bg-primary/80 border-bg-tertiary hover:border-fg-secondary"
                         }`}
                     >
                         {isSelected && (
-                            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-3 h-3 md:w-4 md:h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                             </svg>
                         )}
@@ -88,7 +88,7 @@ export default function DocumentCard({
             )}
 
             {/* Image Preview */}
-            <div className="relative h-32 w-full overflow-hidden rounded-xl bg-bg-tertiary">
+            <div className="relative h-24 md:h-32 w-full overflow-hidden rounded-lg md:rounded-xl bg-bg-tertiary">
                 <img
                     src={fileUrl}
                     alt={primaryEntity}
@@ -101,16 +101,16 @@ export default function DocumentCard({
 
             {/* Content */}
             <div className="flex flex-col gap-1">
-                <div className="flex justify-between items-start">
-                    <div>
-                        <h3 className="font-semibold text-fg-primary line-clamp-1" title={primaryEntity}>
+                <div className="flex justify-between items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                        <h3 className="text-sm md:text-base font-semibold text-fg-primary line-clamp-1" title={primaryEntity}>
                             {primaryEntity}
                         </h3>
                         {secondaryEntity && (
                             <p className="text-xs text-fg-secondary line-clamp-1">{secondaryEntity}</p>
                         )}
                     </div>
-                    <span className="font-semibold text-fg-primary tabular-nums">{totalValue}</span>
+                    <span className="text-sm md:text-base font-semibold text-fg-primary tabular-nums flex-shrink-0">{totalValue}</span>
                 </div>
 
                 <div className="mt-2 flex items-center justify-between text-xs">
