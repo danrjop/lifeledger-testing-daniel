@@ -88,6 +88,7 @@ export interface SearchResult {
   answer: string;
   documents: Document[];
   query: string;
+  session_id: number;
   safety?: SafetyInfo | null;
   groundedness?: GroundednessInfo | null;
 }
@@ -247,7 +248,7 @@ export async function getDocument(docId: string): Promise<DocumentDetail> {
 
 /**
  * Regenerate AI answer for a search query.
- * Logs the rejected answer for quality tracking.
+ * Logs the attempt for the feedback loop.
  */
 export interface RegenerateResult {
   answer: string;
@@ -256,12 +257,11 @@ export interface RegenerateResult {
 }
 
 export async function regenerateAnswer(
-  query: string,
-  rejectedAnswer: string
+  sessionId: number
 ): Promise<RegenerateResult> {
   return apiCall<RegenerateResult>("/regenerate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query, rejected_answer: rejectedAnswer }),
+    body: JSON.stringify({ session_id: sessionId }),
   });
 }

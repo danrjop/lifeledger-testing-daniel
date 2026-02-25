@@ -21,12 +21,14 @@ function SearchResults() {
   const [groundedness, setGroundedness] = useState<GroundednessInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [sessionId, setSessionId] = useState<number | null>(null);
 
   // Fetch search results from API
   useEffect(() => {
     if (!query) {
       setResults([]);
       setAnswer("");
+      setSessionId(null);
       return;
     }
 
@@ -39,6 +41,7 @@ function SearchResults() {
         setAnswer(result.answer);
         setSafety(result.safety ?? null);
         setGroundedness(result.groundedness ?? null);
+        setSessionId(result.session_id);
         setPhase("answering");
       })
       .catch((err) => {
@@ -52,10 +55,10 @@ function SearchResults() {
   const handleBack = useCallback(() => router.push("/dashboard"), [router]);
 
   const handleRegenerate = useCallback(async () => {
-    if (!query || isRegenerating) return;
+    if (!sessionId || isRegenerating) return;
     setIsRegenerating(true);
     try {
-      const result = await regenerateAnswer(query, answer);
+      const result = await regenerateAnswer(sessionId);
       setAnswer(result.answer);
       setSafety(result.safety ?? null);
       setGroundedness(result.groundedness ?? null);
@@ -65,7 +68,7 @@ function SearchResults() {
     } finally {
       setIsRegenerating(false);
     }
-  }, [query, answer, isRegenerating]);
+  }, [sessionId, isRegenerating]);
 
   return (
     <div className="flex h-full flex-col">
