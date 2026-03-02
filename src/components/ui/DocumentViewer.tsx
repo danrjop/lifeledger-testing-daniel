@@ -141,7 +141,7 @@ export default function DocumentViewer({ documentId, onClose, documents, highlig
         setCurrentDocId(allDocs[prevIndex].id);
     };
 
-    const toggleZoom = (e: React.MouseEvent) => {
+    const toggleZoom = () => {
         if (scale > 1) {
             setScale(1);
         } else {
@@ -311,11 +311,11 @@ export default function DocumentViewer({ documentId, onClose, documents, highlig
                                                             id: doc.id,
                                                             type: doc.type,
                                                             fileUrl: doc.fileUrl,
-                                                            status: "Processed",
+                                                            status: "Done",
                                                             primaryEntity: doc.primaryEntity,
                                                             primaryDate: "",
-                                                            totalValue: null,
-                                                        } as Document]);
+                                                            totalValue: "",
+                                                        }]);
                                                     }
                                                     setCurrentDocId(doc.id);
                                                 }}
