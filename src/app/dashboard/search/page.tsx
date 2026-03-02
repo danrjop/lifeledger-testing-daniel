@@ -242,7 +242,7 @@ function SearchResults() {
         <DocumentViewer
           documentId={viewerDocId}
           onClose={() => setViewerDocId(null)}
-          documents={messages.flatMap(m => m.documents ?? [])}
+          documents={[...new Map(messages.flatMap(m => m.documents ?? []).map(d => [d.id, d])).values()]}
           searchQuery={initialQuery}
         />
       )}
