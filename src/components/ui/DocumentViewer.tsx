@@ -49,6 +49,16 @@ function filterBlocksByQuery(blocks: OcrBlock[], query: string): OcrBlock[] {
 export default function DocumentViewer({ documentId, onClose, documents, highlightBoxes, searchQuery }: DocumentViewerProps) {
     const [currentDocId, setCurrentDocId] = useState(documentId);
     const [relatedDocs, setRelatedDocs] = useState<RelatedDocument[]>([]);
+    const [extraDocs, setExtraDocs] = useState<Document[]>([]);
+
+    // Sync currentDocId when parent changes documentId (e.g., clicking a different evidence card)
+    useEffect(() => {
+        setCurrentDocId(documentId);
+        setExtraDocs([]);
+    }, [documentId]);
+
+    // Merge passed documents with any related docs the user navigated to
+    const allDocs = [...documents, ...extraDocs];
     const [loadingRelated, setLoadingRelated] = useState(false);
 
     // OCR bounding box state
@@ -71,8 +81,8 @@ export default function DocumentViewer({ documentId, onClose, documents, highlig
         }));
     })();
 
-    const currentIndex = documents.findIndex(d => d.id === currentDocId);
-    const currentDoc = documents[currentIndex];
+    const currentIndex = allDocs.findIndex(d => d.id === currentDocId);
+    const currentDoc = allDocs[currentIndex];
 
     // Reset zoom and image dimensions when doc changes
     useEffect(() => {
@@ -122,13 +132,13 @@ export default function DocumentViewer({ documentId, onClose, documents, highlig
     if (!currentDoc) return null;
 
     const handleNext = () => {
-        const nextIndex = (currentIndex + 1) % documents.length;
-        setCurrentDocId(documents[nextIndex].id);
+        const nextIndex = (currentIndex + 1) % allDocs.length;
+        setCurrentDocId(allDocs[nextIndex].id);
     };
 
     const handlePrev = () => {
-        const prevIndex = (currentIndex - 1 + documents.length) % documents.length;
-        setCurrentDocId(documents[prevIndex].id);
+        const prevIndex = (currentIndex - 1 + allDocs.length) % allDocs.length;
+        setCurrentDocId(allDocs[prevIndex].id);
     };
 
     const toggleZoom = (e: React.MouseEvent) => {
@@ -295,7 +305,20 @@ export default function DocumentViewer({ documentId, onClose, documents, highlig
                                         {relatedDocs.map((doc) => (
                                             <button
                                                 key={doc.id}
-                                                onClick={() => setCurrentDocId(doc.id)}
+                                                onClick={() => {
+                                                    if (!allDocs.some(d => d.id === doc.id)) {
+                                                        setExtraDocs(prev => [...prev, {
+                                                            id: doc.id,
+                                                            type: doc.type,
+                                                            fileUrl: doc.fileUrl,
+                                                            status: "Processed",
+                                                            primaryEntity: doc.primaryEntity,
+                                                            primaryDate: "",
+                                                            totalValue: null,
+                                                        } as Document]);
+                                                    }
+                                                    setCurrentDocId(doc.id);
+                                                }}
                                                 className="flex items-center gap-3 p-2 rounded-lg bg-bg-primary hover:bg-bg-tertiary/50 transition-colors text-left"
                                             >
                                                 <img
