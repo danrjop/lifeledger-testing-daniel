@@ -16,15 +16,12 @@ import type {
   RecurringAnalytics,
   TripAnalytics,
 } from "@/lib/api-client";
+import { formatCurrency } from "@/lib/format";
 
 interface SpendingChartsProps {
   spending: SpendingAnalytics;
   recurring: RecurringAnalytics;
   trips: TripAnalytics;
-}
-
-function formatCurrency(val: number): string {
-  return `$${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function StatCard({ label, value }: { label: string; value: string }) {
