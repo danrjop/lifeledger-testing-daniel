@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { SafetyInfo, GroundednessInfo } from "@/lib/api-client";
@@ -45,9 +45,36 @@ function GroundednessBanner({ groundedness }: { groundedness: GroundednessInfo }
 
 export default function AIAnswerBox({ phase, answer, onDone, onRegenerate, isRegenerating, safety, groundedness }: AIAnswerBoxProps) {
   const [displayedText, setDisplayedText] = useState("");
+  const [cooldownSec, setCooldownSec] = useState(0);
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isSafetyBlock = !!safety;
 
   const stableOnDone = useCallback(onDone, [onDone]);
+
+  // Cleanup cooldown timer on unmount
+  useEffect(() => {
+    return () => {
+      if (cooldownRef.current) clearInterval(cooldownRef.current);
+    };
+  }, []);
+
+  const handleRegenerateWithCooldown = useCallback(() => {
+    if (!onRegenerate || cooldownSec > 0) return;
+    onRegenerate();
+    // Start 15s cooldown
+    setCooldownSec(15);
+    if (cooldownRef.current) clearInterval(cooldownRef.current);
+    cooldownRef.current = setInterval(() => {
+      setCooldownSec((prev) => {
+        if (prev <= 1) {
+          if (cooldownRef.current) clearInterval(cooldownRef.current);
+          cooldownRef.current = null;
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, [onRegenerate, cooldownSec]);
 
   // Skip typewriter and signal done immediately for safety blocks
   useEffect(() => {
@@ -150,8 +177,8 @@ export default function AIAnswerBox({ phase, answer, onDone, onRegenerate, isReg
                 </div>
                 {phase === "done" && onRegenerate && (
                   <button
-                    onClick={onRegenerate}
-                    disabled={isRegenerating}
+                    onClick={handleRegenerateWithCooldown}
+                    disabled={isRegenerating || cooldownSec > 0}
                     className="mt-3 flex items-center gap-1.5 text-xs text-fg-tertiary hover:text-fg-secondary transition-colors disabled:opacity-50"
                   >
                     {isRegenerating ? (
@@ -161,6 +188,13 @@ export default function AIAnswerBox({ phase, answer, onDone, onRegenerate, isReg
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                         </svg>
                         Regenerating...
+                      </>
+                    ) : cooldownSec > 0 ? (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                        Regenerate ({cooldownSec}s)
                       </>
                     ) : (
                       <>

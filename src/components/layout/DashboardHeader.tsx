@@ -47,9 +47,6 @@ export default function DashboardHeader({ onUploadClick, children }: DashboardHe
 
       {/* Action Buttons */}
       <div className="flex items-center gap-2">
-        {/* Custom action buttons (e.g., select/delete) */}
-        {children}
-
         {/* Upload / Plus Button */}
         <button
           onClick={onUploadClick}
@@ -60,6 +57,9 @@ export default function DashboardHeader({ onUploadClick, children }: DashboardHe
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
         </button>
+
+        {/* Custom action buttons (e.g., select/delete) */}
+        {children}
 
         {/* Settings Button */}
         <button

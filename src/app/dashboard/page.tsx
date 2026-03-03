@@ -8,7 +8,8 @@ import DocumentCard from "@/components/ui/DocumentCard";
 import DocumentViewer from "@/components/ui/DocumentViewer";
 import ReviewModal from "@/components/ui/ReviewModal";
 import EmptyState from "@/components/views/EmptyState";
-import { uploadAndProcess, getDocuments, deleteDocuments, getRadarEvents, reviewDocument, type Document, type RadarEvent, type RejectedFile } from "@/lib/api-client";
+import SpendingCharts from "@/components/ui/SpendingCharts";
+import { uploadAndProcess, getDocuments, deleteDocuments, getRadarEvents, reviewDocument, getSpendingAnalytics, getRecurringCosts, getTrips, type Document, type RadarEvent, type RejectedFile, type SpendingAnalytics, type RecurringAnalytics, type TripAnalytics } from "@/lib/api-client";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_MIME_PREFIXES = ["image/"];
@@ -26,6 +27,10 @@ export default function DashboardPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [rejectedFiles, setRejectedFiles] = useState<RejectedFile[]>([]);
+  const [showInsights, setShowInsights] = useState(false);
+  const [analyticsData, setAnalyticsData] = useState<{ spending: SpendingAnalytics; recurring: RecurringAnalytics; trips: TripAnalytics } | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsMonths, setAnalyticsMonths] = useState(12); // default 1 year
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load documents and radar events on mount
@@ -46,6 +51,17 @@ export default function DashboardPage() {
     }
     loadData();
   }, []);
+
+  // Lazy-load analytics when insights section is opened
+  useEffect(() => {
+    if (showInsights && !analyticsData && !analyticsLoading) {
+      setAnalyticsLoading(true);
+      Promise.all([getSpendingAnalytics(analyticsMonths), getRecurringCosts(), getTrips()])
+        .then(([spending, recurring, trips]) => setAnalyticsData({ spending, recurring, trips }))
+        .catch((err) => console.error("Failed to load analytics:", err))
+        .finally(() => setAnalyticsLoading(false));
+    }
+  }, [showInsights, analyticsData, analyticsLoading, analyticsMonths]);
 
   const handleFilterToggle = useCallback((filter: FilterType) => {
     setActiveFilters((prev) => {
@@ -192,6 +208,7 @@ export default function DashboardPage() {
     }
 
     setIsUploading(false);
+    setAnalyticsData(null); // Invalidate analytics cache so next open refreshes
   }, []);
 
   // Filter documents by active filter types
@@ -245,13 +262,18 @@ export default function DashboardPage() {
             )}
             <button
               onClick={toggleSelectMode}
-              className={`px-4 py-2 rounded-lg transition-colors ${
+              className={`rounded-xl transition-colors ${
                 isSelectMode
-                  ? "bg-fg-secondary text-white"
-                  : "bg-bg-tertiary text-fg-secondary hover:bg-bg-tertiary/80"
+                  ? "px-4 py-2 bg-fg-secondary text-white"
+                  : "flex items-center justify-center p-2.5 text-fg-secondary hover:bg-bg-secondary hover:text-fg-primary min-h-11 min-w-11"
               }`}
+              aria-label={isSelectMode ? "Cancel selection" : "Select to delete"}
             >
-              {isSelectMode ? "Cancel" : "Select"}
+              {isSelectMode ? "Cancel" : (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              )}
             </button>
           </div>
         </DashboardHeader>
@@ -309,6 +331,71 @@ export default function DashboardPage() {
                   </button>
                 ))}
               </div>
+            </section>
+          )}
+
+          {/* Financial Insights — collapsible, lazy-loaded */}
+          {hasContent && (
+            <section className="mb-8">
+              <button
+                onClick={() => setShowInsights((prev) => {
+                  if (!prev) setAnalyticsData(null); // Force refresh on reopen
+                  return !prev;
+                })}
+                className="flex items-center gap-2 w-full group"
+              >
+                <h2 className="text-display font-semibold text-fg-primary tracking-heading">
+                  Financial Insights
+                </h2>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                  className={`w-5 h-5 text-fg-tertiary transition-transform duration-200 ${showInsights ? "rotate-180" : ""}`}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+              </button>
+              {showInsights && (
+                <div className="flex gap-2 mt-3">
+                  {[
+                    { label: "1M", months: 1 },
+                    { label: "1Y", months: 12 },
+                    { label: "5Y", months: 60 },
+                  ].map((opt) => (
+                    <button
+                      key={opt.months}
+                      onClick={() => {
+                        setAnalyticsMonths(opt.months);
+                        setAnalyticsData(null);
+                      }}
+                      className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                        analyticsMonths === opt.months
+                          ? "bg-accent text-white"
+                          : "bg-bg-tertiary text-fg-secondary hover:bg-bg-tertiary/80"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {showInsights && (
+                analyticsLoading ? (
+                  <div className="mt-4 flex items-center gap-2 text-fg-tertiary">
+                    <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                    <span className="text-sm">Loading analytics...</span>
+                  </div>
+                ) : analyticsData ? (
+                  <SpendingCharts
+                    spending={analyticsData.spending}
+                    recurring={analyticsData.recurring}
+                    trips={analyticsData.trips}
+                  />
+                ) : null
+              )}
             </section>
           )}
 
