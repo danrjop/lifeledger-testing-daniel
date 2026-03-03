@@ -90,6 +90,13 @@ export interface GroundednessInfo {
   message: string;
 }
 
+export interface ChartDataItem {
+  type: "spending_by_merchant" | "spending_over_time" | "receipt_table";
+  title: string;
+  data: Record<string, unknown>[];
+  summary?: Record<string, unknown>;
+}
+
 export interface SearchResult {
   answer: string;
   documents: Document[];
@@ -98,6 +105,7 @@ export interface SearchResult {
   conversation_id: number;
   safety?: SafetyInfo | null;
   groundedness?: GroundednessInfo | null;
+  chart_data?: ChartDataItem[] | null;
 }
 
 export interface ChatMessage {
@@ -108,6 +116,7 @@ export interface ChatMessage {
   sessionId?: number;
   safety?: SafetyInfo | null;
   groundedness?: GroundednessInfo | null;
+  chartData?: ChartDataItem[] | null;
   isLoading?: boolean;
 }
 
@@ -272,6 +281,7 @@ export interface RegenerateResult {
   answer: string;
   safety?: SafetyInfo;
   groundedness?: GroundednessInfo;
+  chart_data?: ChartDataItem[] | null;
 }
 
 export async function regenerateAnswer(
