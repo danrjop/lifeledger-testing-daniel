@@ -39,7 +39,7 @@ export default function DashboardPage() {
       try {
         const [docs, radar] = await Promise.all([
           getDocuments(),
-          getRadarEvents(30), // Next 30 days
+          getRadarEvents(365), // Next 30 days
         ]);
         setDocuments(docs);
         setRadarEvents(radar.events);
@@ -110,7 +110,7 @@ export default function DashboardPage() {
       // Remove deleted documents from state
       setDocuments((prev) => prev.filter((doc) => !selectedIds.has(doc.id)));
       // Refresh radar events (deleted doc may have had a radar event)
-      const radar = await getRadarEvents(30);
+      const radar = await getRadarEvents(365);
       setRadarEvents(radar.events);
       setSelectedIds(new Set());
       setIsSelectMode(false);
@@ -172,7 +172,7 @@ export default function DashboardPage() {
     try {
       const [docs, radar] = await Promise.all([
         getDocuments(),
-        getRadarEvents(30),
+        getRadarEvents(365),
       ]);
       setDocuments(docs);
       setRadarEvents(radar.events);
@@ -197,7 +197,7 @@ export default function DashboardPage() {
         try {
           const [docs, radar] = await Promise.all([
             getDocuments(),
-            getRadarEvents(30),
+            getRadarEvents(365),
           ]);
           setDocuments(docs);
           setRadarEvents(radar.events);
