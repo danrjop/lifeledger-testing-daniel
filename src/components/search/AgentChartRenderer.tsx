@@ -14,23 +14,7 @@ import {
 import type { ChartDataItem } from "@/lib/api-client";
 import { formatCurrency } from "@/lib/format";
 
-interface AgentChartRendererProps {
-  charts: ChartDataItem[];
-}
-
-export default function AgentChartRenderer({ charts }: AgentChartRendererProps) {
-  if (!charts || charts.length === 0) return null;
-
-  return (
-    <div className="mt-4 space-y-4 animate-fade-in">
-      {charts.map((chart, index) => (
-        <ChartBlock key={`${chart.type}-${index}`} chart={chart} />
-      ))}
-    </div>
-  );
-}
-
-function ChartBlock({ chart }: { chart: ChartDataItem }) {
+export function ChartBlock({ chart }: { chart: ChartDataItem }) {
   switch (chart.type) {
     case "spending_by_merchant":
       return <MerchantBarChart chart={chart} />;
