@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   BarChart,
   Bar,
@@ -22,6 +23,7 @@ interface SpendingChartsProps {
   spending: SpendingAnalytics;
   recurring: RecurringAnalytics;
   trips: TripAnalytics;
+  onDocumentClick?: (docId: string) => void;
 }
 
 function StatCard({ label, value }: { label: string; value: string }) {
@@ -33,7 +35,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function SpendingCharts({ spending, recurring, trips }: SpendingChartsProps) {
+export default function SpendingCharts({ spending, recurring, trips, onDocumentClick }: SpendingChartsProps) {
   const avgMonthly =
     spending.by_month.length > 0
       ? spending.total / spending.by_month.length
@@ -191,7 +193,7 @@ export default function SpendingCharts({ spending, recurring, trips }: SpendingC
           </p>
           <div className="space-y-3">
             {trips.trips.map((trip, i) => (
-              <TripCard key={i} trip={trip} />
+              <TripCard key={i} trip={trip} onDocumentClick={onDocumentClick} />
             ))}
           </div>
         </div>
@@ -209,7 +211,14 @@ export default function SpendingCharts({ spending, recurring, trips }: SpendingC
   );
 }
 
-function TripCard({ trip }: { trip: SpendingChartsProps["trips"]["trips"][number] }) {
+function TripCard({
+  trip,
+  onDocumentClick,
+}: {
+  trip: SpendingChartsProps["trips"]["trips"][number];
+  onDocumentClick?: (docId: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
   const startDate = new Date(trip.start_date);
   const endDate = new Date(trip.end_date);
   const sameDay = trip.start_date === trip.end_date;
@@ -223,23 +232,53 @@ function TripCard({ trip }: { trip: SpendingChartsProps["trips"]["trips"][number
     });
 
   return (
-    <div className="rounded-lg border border-bg-tertiary/50 bg-bg-primary/50 px-4 py-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-fg-primary">
-            {sameDay ? fmt(startDate) : `${fmt(startDate)} — ${fmt(endDate)}`}
-          </p>
-          {trip.location_hint && (
-            <p className="text-xs text-fg-tertiary mt-0.5 truncate">{trip.location_hint}</p>
-          )}
-          <p className="text-xs text-fg-tertiary mt-1">
-            {trip.document_count} document{trip.document_count !== 1 ? "s" : ""}
+    <div className="rounded-lg border border-bg-tertiary/50 bg-bg-primary/50">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full px-4 py-3 text-left"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-fg-primary">
+              {sameDay ? fmt(startDate) : `${fmt(startDate)} — ${fmt(endDate)}`}
+            </p>
+            {trip.location_hint && (
+              <p className="text-xs text-fg-tertiary mt-0.5 truncate">{trip.location_hint}</p>
+            )}
+            <p className="text-xs text-fg-tertiary mt-1">
+              {trip.document_count} document{trip.document_count !== 1 ? "s" : ""} &middot; tap to {expanded ? "collapse" : "view"}
+            </p>
+          </div>
+          <p className="text-sm font-semibold text-fg-primary flex-shrink-0">
+            {formatCurrency(trip.total_cost)}
           </p>
         </div>
-        <p className="text-sm font-semibold text-fg-primary flex-shrink-0">
-          {formatCurrency(trip.total_cost)}
-        </p>
-      </div>
+      </button>
+      {expanded && trip.documents && trip.documents.length > 0 && (
+        <div className="border-t border-bg-tertiary/50 px-4 py-2 space-y-1">
+          {trip.documents.map((doc) => (
+            <button
+              key={doc.doc_id}
+              onClick={() => onDocumentClick?.(String(doc.doc_id))}
+              className="w-full flex items-center justify-between gap-3 rounded px-2 py-1.5 text-left hover:bg-bg-tertiary/30 transition-colors"
+            >
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-fg-primary truncate">
+                  {doc.merchant || "Unknown"}
+                </p>
+                {doc.date && (
+                  <p className="text-xs text-fg-tertiary">{doc.date}</p>
+                )}
+              </div>
+              {doc.amount != null && (
+                <p className="text-xs font-medium text-fg-primary flex-shrink-0">
+                  {formatCurrency(doc.amount)}
+                </p>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

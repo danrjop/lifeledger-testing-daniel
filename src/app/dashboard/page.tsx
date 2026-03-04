@@ -393,6 +393,7 @@ export default function DashboardPage() {
                     spending={analyticsData.spending}
                     recurring={analyticsData.recurring}
                     trips={analyticsData.trips}
+                    onDocumentClick={(docId) => setViewerDocId(docId)}
                   />
                 ) : null
               )}
