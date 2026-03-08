@@ -123,7 +123,7 @@ function MerchantBarChart({ chart }: { chart: ChartDataItem }) {
             tickLine={false}
           />
           <Tooltip
-            formatter={(value: number) => [formatCurrency(Number(value)), "Total"]}
+            formatter={(value: number | undefined) => [formatCurrency(Number(value ?? 0)), "Total"]}
             contentStyle={{
               backgroundColor: "var(--bg-secondary)",
               border: "1px solid var(--bg-tertiary)",
@@ -185,7 +185,7 @@ function SpendingAreaChart({ chart }: { chart: ChartDataItem }) {
             width={70}
           />
           <Tooltip
-            formatter={(value: number) => [formatCurrency(Number(value)), "Spending"]}
+            formatter={(value: number | undefined) => [formatCurrency(Number(value ?? 0)), "Spending"]}
             contentStyle={{
               backgroundColor: "var(--bg-secondary)",
               border: "1px solid var(--bg-tertiary)",
