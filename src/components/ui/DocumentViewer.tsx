@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Document } from "@/lib/types";
 import { getRelatedDocuments, getDocument, type RelatedDocument, type OcrBlock } from "@/lib/api-client";
 
@@ -64,47 +64,48 @@ export default function DocumentViewer({ documentId, onClose, documents, highlig
     // OCR bounding box state
     const [ocrBlocks, setOcrBlocks] = useState<OcrBlock[]>([]);
     const [imgDimensions, setImgDimensions] = useState<{ width: number; height: number } | null>(null);
+    const [boxesVisible, setBoxesVisible] = useState(false);
+    const [isOcrLoading, setIsOcrLoading] = useState(true);
 
-    // Only show boxes if we are on the initial doc (since boxes are specific to it)
-    const showBoxes = (highlightBoxes || (searchQuery && ocrBlocks.length > 0 && imgDimensions)) && currentDocId === documentId;
-    const [scale, setScale] = useState(1);
+    const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Compute highlight boxes from search query + OCR blocks
-    const computedBoxes: HighlightBox[] = (() => {
+    const computedBoxes: HighlightBox[] = useMemo(() => {
         if (highlightBoxes) return highlightBoxes;
-        if (!searchQuery || !imgDimensions || ocrBlocks.length === 0) return [];
-        const filtered = filterBlocksByQuery(ocrBlocks, searchQuery);
-        return filtered.map(block => ({
+        if (!imgDimensions || ocrBlocks.length === 0) return [];
+        const blocks = ocrBlocks;
+        return blocks.map(block => ({
             ...bboxToPercentRect(block.bbox, imgDimensions.width, imgDimensions.height),
             label: block.text,
         }));
-    })();
+    }, [highlightBoxes, imgDimensions, ocrBlocks, searchQuery]);
+
+    const showBoxes = boxesVisible && computedBoxes.length > 0;
 
     const currentIndex = allDocs.findIndex(d => d.id === currentDocId);
     const currentDoc = allDocs[currentIndex];
 
-    // Reset zoom and image dimensions when doc changes
+    // Reset image dimensions when doc changes
     useEffect(() => {
-        setScale(1);
         setImgDimensions(null);
     }, [currentDocId]);
 
-    // Fetch OCR blocks when searchQuery is provided (for initial doc only)
+    // Always fetch OCR blocks eagerly so toggle is instant
     useEffect(() => {
-        if (!searchQuery || documentId !== currentDocId) {
-            setOcrBlocks([]);
-            return;
-        }
-        getDocument(documentId)
+        setOcrBlocks([]);
+        setIsOcrLoading(true);
+        getDocument(currentDocId)
             .then((doc) => {
                 setOcrBlocks(doc.ocr_blocks || []);
+                setIsOcrLoading(false);
             })
             .catch((e) => {
                 console.error("Failed to fetch ocr_blocks:", e);
                 setOcrBlocks([]);
+                setIsOcrLoading(false);
             });
-    }, [searchQuery, documentId, currentDocId]);
+    }, [currentDocId]);
 
     // Handle image load to get natural dimensions
     const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -139,14 +140,6 @@ export default function DocumentViewer({ documentId, onClose, documents, highlig
     const handlePrev = () => {
         const prevIndex = (currentIndex - 1 + allDocs.length) % allDocs.length;
         setCurrentDocId(allDocs[prevIndex].id);
-    };
-
-    const toggleZoom = () => {
-        if (scale > 1) {
-            setScale(1);
-        } else {
-            setScale(2.5); // 2.5x zoom
-        }
     };
 
     const getTypeColor = () => {
@@ -196,9 +189,7 @@ export default function DocumentViewer({ documentId, onClose, documents, highlig
                 <div className="flex-1 flex items-center justify-center overflow-hidden rounded-2xl bg-black/50 relative group min-h-[40vh] md:min-h-0">
                     <div
                         ref={containerRef}
-                        className={`relative cursor-zoom-in transition-transform duration-300 ease-out ${scale > 1 ? "cursor-zoom-out" : ""}`}
-                        style={{ transform: `scale(${scale})` }}
-                        onClick={toggleZoom}
+                        className="relative"
                     >
                         <img
                             src={currentDoc.fileUrl}
@@ -210,24 +201,29 @@ export default function DocumentViewer({ documentId, onClose, documents, highlig
                         {showBoxes && computedBoxes.map((box, idx) => (
                             <div
                                 key={idx}
-                                className="absolute border-2 border-accent bg-accent/20 z-10"
+                                className="absolute border border-accent bg-accent/20 z-10 transition-opacity duration-200 hover:opacity-10 cursor-pointer"
                                 style={{
                                     top: `${box.y}%`,
                                     left: `${box.x}%`,
                                     width: `${box.width}%`,
                                     height: `${box.height}%`
                                 }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (box.label) {
+                                        navigator.clipboard.writeText(box.label);
+                                        setCopiedIdx(idx);
+                                        setTimeout(() => setCopiedIdx(null), 1200);
+                                    }
+                                }}
                             >
                                 {box.label && (
                                     <span className="absolute -top-8 left-0 bg-accent text-accent-fg text-lg px-2 py-0.5 rounded shadow-sm whitespace-nowrap">
-                                        {box.label}
+                                        {copiedIdx === idx ? "Copied!" : box.label}
                                     </span>
                                 )}
                             </div>
                         ))}
-                    </div>
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white px-3 py-1 rounded-full text-xs pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                        Click to Zoom
                     </div>
                 </div>
 
@@ -248,6 +244,23 @@ export default function DocumentViewer({ documentId, onClose, documents, highlig
                     </div>
 
                     <div className="h-px bg-bg-tertiary"></div>
+
+                    {/* Evidence Highlights Toggle */}
+                    {(isOcrLoading || ocrBlocks.length > 0) && (
+                        <button
+                            onClick={() => setBoxesVisible(v => !v)}
+                            className={`flex items-center gap-2 text-sm transition-colors ${
+                                isOcrLoading
+                                    ? 'text-fg-tertiary cursor-default'
+                                    : 'text-fg-secondary hover:text-fg-primary'
+                            }`}
+                        >
+                            <div className={`w-8 h-4 rounded-full transition-colors ${boxesVisible ? 'bg-accent' : 'bg-bg-tertiary'}`}>
+                                <div className={`w-4 h-4 rounded-full bg-white shadow transition-transform ${boxesVisible ? 'translate-x-4' : 'translate-x-0'}`} />
+                            </div>
+                            Evidence Highlights
+                        </button>
+                    )}
 
                     {/* Meta Grid */}
                     <div className="grid grid-cols-2 gap-4">
