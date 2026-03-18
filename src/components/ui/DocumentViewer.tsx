@@ -210,7 +210,7 @@ export default function DocumentViewer({ documentId, onClose, documents, highlig
                                 }}
                             >
                                 {box.label && (
-                                    <span className="absolute -top-8 left-0 bg-accent text-accent-fg text-lg px-2 py-0.5 rounded shadow-sm whitespace-nowrap">
+                                    <span className={`absolute bg-accent text-accent-fg text-lg px-2 py-0.5 rounded shadow-sm max-w-[200px] truncate ${box.y < 8 ? 'top-full mt-1' : '-top-8'} ${box.x > 60 ? 'right-0' : 'left-0'}`}>
                                         {copiedIdx === idx ? "Copied!" : box.label}
                                     </span>
                                 )}
