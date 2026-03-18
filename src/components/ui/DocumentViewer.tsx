@@ -48,7 +48,7 @@ function OcrBoxOverlay({ boxes, copiedIdx, onCopy }: {
             {boxes.map((box, idx) => (
                 <div
                     key={idx}
-                    className="absolute border border-accent bg-accent/20 z-10 transition-opacity duration-200 hover:opacity-10 cursor-pointer"
+                    className="absolute border border-accent bg-accent/70 z-10 transition-opacity duration-200 hover:opacity-10 cursor-pointer overflow-hidden"
                     style={{ top: `${box.y}%`, left: `${box.x}%`, width: `${box.width}%`, height: `${box.height}%` }}
                     onClick={(e) => {
                         e.stopPropagation();
@@ -56,7 +56,7 @@ function OcrBoxOverlay({ boxes, copiedIdx, onCopy }: {
                     }}
                 >
                     {box.label && (
-                        <span className={`absolute bg-accent text-accent-fg text-lg px-2 py-0.5 rounded shadow-sm max-w-[200px] truncate ${box.y < 8 ? 'top-full mt-1' : '-top-8'} ${(box.x + box.width / 2) > 50 ? 'right-0' : 'left-0'}`}>
+                        <span className="absolute inset-0 flex items-center justify-center text-white text-xs font-medium overflow-hidden break-words text-center leading-tight p-0.5 pointer-events-none">
                             {copiedIdx === idx ? "Copied!" : box.label}
                         </span>
                     )}
