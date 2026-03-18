@@ -58,7 +58,7 @@ function OcrBoxOverlay({ boxes, copiedIdx, onCopy }: {
                     {box.label && (
                         <span
                             className="absolute inset-0 flex items-center justify-center text-white font-medium text-center leading-tight p-0.5 pointer-events-none"
-                            style={{ fontSize: 'min(60cqh, 12px)' }}
+                            style={{ fontSize: 'clamp(8px, 60cqh, 12px)' }}
                         >
                             {copiedIdx === idx ? "Copied!" : box.label}
                         </span>
