@@ -378,7 +378,7 @@ export default function DocumentViewer({ documentId, onClose, documents, highlig
                         <img
                             src={currentDoc.fileUrl}
                             alt={currentDoc.primaryEntity}
-                            className="max-h-screen max-w-screen object-contain"
+                            className="max-h-[calc(100vh-32px)] max-w-[calc(100vw-32px)] object-contain"
                             onLoad={handleImageLoad}
                         />
                         {showBoxes && computedBoxes.map((box, idx) => (
