@@ -66,6 +66,7 @@ export default function DocumentViewer({ documentId, onClose, documents, highlig
     const [imgDimensions, setImgDimensions] = useState<{ width: number; height: number } | null>(null);
     const [boxesVisible, setBoxesVisible] = useState(false);
     const [isOcrLoading, setIsOcrLoading] = useState(true);
+    const [imgFullscreen, setImgFullscreen] = useState(false);
 
     const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -225,6 +226,16 @@ export default function DocumentViewer({ documentId, onClose, documents, highlig
                             </div>
                         ))}
                     </div>
+                        {/* Mobile fullscreen tap button — hidden on md+ */}
+                        <button
+                            onClick={() => setImgFullscreen(true)}
+                            className="md:hidden absolute bottom-2 right-2 z-20 rounded-full bg-black/50 p-2 text-white"
+                            aria-label="View fullscreen"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                            </svg>
+                        </button>
                 </div>
 
                 {/* Side Panel (Info) */}
@@ -356,6 +367,58 @@ export default function DocumentViewer({ documentId, onClose, documents, highlig
                     )}
                 </div>
             </div>
+
+            {/* Mobile fullscreen image overlay */}
+            {imgFullscreen && (
+                <div
+                    className="fixed inset-0 z-[60] bg-black flex items-center justify-center"
+                    onClick={() => setImgFullscreen(false)}
+                >
+                    <button
+                        onClick={(e) => { e.stopPropagation(); setImgFullscreen(false); }}
+                        className="absolute top-4 right-4 z-10 rounded-full bg-white/10 p-2 text-white"
+                        aria-label="Close fullscreen"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                    <div className="relative" onClick={(e) => e.stopPropagation()}>
+                        <img
+                            src={currentDoc.fileUrl}
+                            alt={currentDoc.primaryEntity}
+                            className="max-h-screen max-w-screen object-contain"
+                            onLoad={handleImageLoad}
+                        />
+                        {showBoxes && computedBoxes.map((box, idx) => (
+                            <div
+                                key={idx}
+                                className="absolute border border-accent bg-accent/20 z-10 transition-opacity duration-200 cursor-pointer"
+                                style={{
+                                    top: `${box.y}%`,
+                                    left: `${box.x}%`,
+                                    width: `${box.width}%`,
+                                    height: `${box.height}%`
+                                }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (box.label) {
+                                        navigator.clipboard.writeText(box.label);
+                                        setCopiedIdx(idx);
+                                        setTimeout(() => setCopiedIdx(null), 1200);
+                                    }
+                                }}
+                            >
+                                {box.label && (
+                                    <span className="absolute -top-8 left-0 bg-accent text-accent-fg text-lg px-2 py-0.5 rounded shadow-sm whitespace-nowrap">
+                                        {copiedIdx === idx ? "Copied!" : box.label}
+                                    </span>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
