@@ -24,4 +24,5 @@ export interface Document {
 
     lineItems?: LineItem[];
     metadata?: DocumentMetadata;
+    radarProcessed?: boolean;
 }

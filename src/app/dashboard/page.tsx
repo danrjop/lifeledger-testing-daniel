@@ -184,8 +184,8 @@ export default function DashboardPage() {
       }
     }
 
-    // Poll for document and radar updates (5s interval, 6 polls = 30s total)
-    // OCR and crawler run in background after upload
+    // Poll for document and radar updates until all processing is complete
+    // Keeps polling while any doc is still in OCR or awaiting radar crawl
     if (uploadSucceeded) {
       let pollCount = 0;
       const pollInterval = setInterval(async () => {
@@ -201,6 +201,14 @@ export default function DashboardPage() {
           ]);
           setDocuments(docs);
           setRadarEvents(radar.events);
+          const stillWorking = docs.some(
+            (d: any) => d.status === "Processing" || d.radarProcessed === false
+          );
+          if (stillWorking) {
+            pollCount = 0;
+          } else {
+            clearInterval(pollInterval);
+          }
         } catch (e) {
           // Silently ignore polling errors
         }
