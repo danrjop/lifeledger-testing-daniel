@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Document } from "@/lib/api-client";
-import { getRelatedDocuments, getDocument, type RelatedDocument, type OcrBlock } from "@/lib/api-client";
+import { Document, getRelatedDocuments, getDocument, type RelatedDocument, type OcrBlock } from "@/lib/api-client";
 
 interface HighlightBox {
     x: number;

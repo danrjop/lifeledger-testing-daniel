@@ -69,6 +69,13 @@ export interface UploadAndProcessResponse {
 export type DocumentType = "Receipt" | "Subscription" | "Invoice" | "Fine" | "Form" | "Payslip" | "Rental Agreement" | "Other";
 export type StatusType = "Processing" | "Needs Review" | "Done";
 
+export interface LineItem {
+  description: string;
+  qty?: string;
+  unitPrice?: string;
+  amount: string;
+}
+
 export interface Document {
   id: string;
   type: DocumentType;
@@ -79,6 +86,8 @@ export interface Document {
   primaryDate: string;
   secondaryDate?: string;
   totalValue: string;
+  lineItems?: LineItem[];
+  metadata?: Record<string, string>;
   radarProcessed?: boolean;
 }
 
