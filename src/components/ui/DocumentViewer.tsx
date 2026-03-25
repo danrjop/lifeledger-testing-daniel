@@ -177,6 +177,8 @@ export default function DocumentViewer({ documentId, onClose, documents, highlig
             case "Receipt": return "bg-success/10 text-success";
             case "Subscription": return "bg-info/10 text-info";
             case "Fine": return "bg-danger/10 text-danger";
+            case "Payslip": return "bg-emerald-500/10 text-emerald-500";
+            case "Rental Agreement": return "bg-violet-500/10 text-violet-500";
             default: return "bg-bg-tertiary text-fg-secondary";
         }
     };

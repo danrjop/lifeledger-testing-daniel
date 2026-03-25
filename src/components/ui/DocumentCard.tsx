@@ -38,6 +38,8 @@ export default function DocumentCard({
             case "Receipt": return "Merchant";
             case "Subscription": return "Service";
             case "Fine": return "Authority";
+            case "Payslip": return "Employer";
+            case "Rental Agreement": return "Landlord";
             default: return "Entity";
         }
     };
@@ -47,6 +49,8 @@ export default function DocumentCard({
             case "Receipt": return "Date";
             case "Subscription": return "Billed";
             case "Fine": return "Date";
+            case "Payslip": return "Pay Date";
+            case "Rental Agreement": return "Lease Start";
             default: return "Date";
         }
     };

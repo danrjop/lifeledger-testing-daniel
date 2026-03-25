@@ -16,6 +16,7 @@ import type {
   SpendingAnalytics,
   RecurringAnalytics,
   TripAnalytics,
+  IncomeAnalytics,
 } from "@/lib/api-client";
 import { formatCurrency } from "@/lib/format";
 
@@ -23,6 +24,7 @@ interface SpendingChartsProps {
   spending: SpendingAnalytics;
   recurring: RecurringAnalytics;
   trips: TripAnalytics;
+  income?: IncomeAnalytics | null;
   onDocumentClick?: (docId: string) => void;
 }
 
@@ -35,7 +37,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function SpendingCharts({ spending, recurring, trips, onDocumentClick }: SpendingChartsProps) {
+export default function SpendingCharts({ spending, recurring, trips, income, onDocumentClick }: SpendingChartsProps) {
   const avgMonthly =
     spending.by_month.length > 0
       ? spending.total / spending.by_month.length
@@ -199,8 +201,81 @@ export default function SpendingCharts({ spending, recurring, trips, onDocumentC
         </div>
       )}
 
+      {/* Income / Earnings */}
+      {income && income.earnings.length > 0 && (
+        <div className="rounded-xl border border-bg-tertiary/50 bg-bg-secondary p-5">
+          <h3 className="text-sm font-semibold text-fg-secondary mb-1">
+            Earnings Overview
+          </h3>
+          <p className="text-xs text-fg-tertiary mb-4">
+            {income.earnings.length} payslip{income.earnings.length !== 1 ? "s" : ""} &middot; {formatCurrency(income.total_gross)} gross &middot; {formatCurrency(income.total_net)} net
+          </p>
+
+          {/* Earnings over time chart */}
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={income.earnings.slice().reverse().map(e => ({
+              date: e.date ?? "Unknown",
+              net: e.net_pay ?? 0,
+              gross: e.gross_pay ?? 0,
+            }))}>
+              <defs>
+                <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--bg-tertiary)" />
+              <XAxis
+                dataKey="date"
+                tick={{ fill: "var(--fg-tertiary)", fontSize: 12 }}
+                axisLine={{ stroke: "var(--bg-tertiary)" }}
+                tickLine={false}
+              />
+              <YAxis
+                tickFormatter={(v) => `$${v}`}
+                tick={{ fill: "var(--fg-tertiary)", fontSize: 12 }}
+                axisLine={false}
+                tickLine={false}
+                width={60}
+              />
+              <Tooltip
+                formatter={(value, name) => [formatCurrency(Number(value)), name === "net" ? "Net Pay" : "Gross Pay"]}
+                contentStyle={{
+                  backgroundColor: "var(--bg-secondary)",
+                  border: "1px solid var(--bg-tertiary)",
+                  borderRadius: "8px",
+                  color: "var(--fg-primary)",
+                }}
+              />
+              <Area type="monotone" dataKey="gross" stroke="#6ee7b7" strokeWidth={1} fill="none" strokeDasharray="4 2" />
+              <Area type="monotone" dataKey="net" stroke="#10b981" strokeWidth={2} fill="url(#incomeGrad)" />
+            </AreaChart>
+          </ResponsiveContainer>
+
+          {/* Recurring income summary */}
+          {income.recurring_income.length > 0 && (
+            <div className="mt-4 space-y-2">
+              {income.recurring_income.map((ri) => (
+                <div key={ri.employer} className="flex items-center justify-between gap-3 rounded-lg border border-bg-tertiary/50 bg-bg-primary/50 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-fg-primary truncate">{ri.employer}</p>
+                    <p className="text-xs text-fg-tertiary">
+                      {ri.frequency} &middot; {ri.paycheck_count} paycheck{ri.paycheck_count !== 1 ? "s" : ""}
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-sm font-semibold text-emerald-500">{formatCurrency(ri.monthly_estimate)}/mo</p>
+                    <p className="text-xs text-fg-tertiary">{formatCurrency(ri.annual_estimate)}/yr</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Empty states */}
-      {spending.by_month.length === 0 && recurring.recurring.length === 0 && trips.trips.length === 0 && (
+      {spending.by_month.length === 0 && recurring.recurring.length === 0 && trips.trips.length === 0 && (!income || income.earnings.length === 0) && (
         <div className="rounded-xl border border-bg-tertiary/50 bg-bg-secondary p-8 text-center">
           <p className="text-sm text-fg-tertiary">
             No analytics data yet. Upload receipts and documents to see spending insights.

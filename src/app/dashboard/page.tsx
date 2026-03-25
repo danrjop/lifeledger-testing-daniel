@@ -9,7 +9,7 @@ import DocumentViewer from "@/components/ui/DocumentViewer";
 import ReviewModal from "@/components/ui/ReviewModal";
 import EmptyState from "@/components/views/EmptyState";
 import SpendingCharts from "@/components/ui/SpendingCharts";
-import { uploadAndProcess, getDocuments, deleteDocuments, getRadarEvents, reviewDocument, getSpendingAnalytics, getRecurringCosts, getTrips, type Document, type RadarEvent, type RejectedFile, type SpendingAnalytics, type RecurringAnalytics, type TripAnalytics } from "@/lib/api-client";
+import { uploadAndProcess, getDocuments, deleteDocuments, getRadarEvents, reviewDocument, getSpendingAnalytics, getRecurringCosts, getTrips, getIncomeAnalytics, type Document, type RadarEvent, type RejectedFile, type SpendingAnalytics, type RecurringAnalytics, type TripAnalytics, type IncomeAnalytics } from "@/lib/api-client";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_MIME_PREFIXES = ["image/"];
@@ -28,7 +28,7 @@ export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [rejectedFiles, setRejectedFiles] = useState<RejectedFile[]>([]);
   const [showInsights, setShowInsights] = useState(false);
-  const [analyticsData, setAnalyticsData] = useState<{ spending: SpendingAnalytics; recurring: RecurringAnalytics; trips: TripAnalytics } | null>(null);
+  const [analyticsData, setAnalyticsData] = useState<{ spending: SpendingAnalytics; recurring: RecurringAnalytics; trips: TripAnalytics; income: IncomeAnalytics | null } | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsMonths, setAnalyticsMonths] = useState(12); // default 1 year
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -57,8 +57,8 @@ export default function DashboardPage() {
   useEffect(() => {
     if (showInsights && !analyticsData && !analyticsLoading) {
       setAnalyticsLoading(true);
-      Promise.all([getSpendingAnalytics(analyticsMonths), getRecurringCosts(), getTrips()])
-        .then(([spending, recurring, trips]) => setAnalyticsData({ spending, recurring, trips }))
+      Promise.all([getSpendingAnalytics(analyticsMonths), getRecurringCosts(), getTrips(), getIncomeAnalytics(analyticsMonths).catch(() => null)])
+        .then(([spending, recurring, trips, income]) => setAnalyticsData({ spending, recurring, trips, income }))
         .catch((err) => console.error("Failed to load analytics:", err))
         .finally(() => setAnalyticsLoading(false));
     }
@@ -419,6 +419,7 @@ export default function DashboardPage() {
                     spending={analyticsData.spending}
                     recurring={analyticsData.recurring}
                     trips={analyticsData.trips}
+                    income={analyticsData.income}
                     onDocumentClick={(docId) => setViewerDocId(docId)}
                   />
                 ) : null
