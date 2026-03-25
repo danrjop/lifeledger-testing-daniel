@@ -4,7 +4,7 @@ interface DocumentCardProps extends Document {
     onClick?: () => void;
     isSelectMode?: boolean;
     isSelected?: boolean;
-    onSelect?: (id: string) => void;
+    onSelect?: (id: string, e: React.MouseEvent) => void;
 }
 
 export default function DocumentCard({
@@ -51,9 +51,9 @@ export default function DocumentCard({
         }
     };
 
-    const handleClick = () => {
+    const handleClick = (e: React.MouseEvent) => {
         if (isSelectMode && onSelect) {
-            onSelect(id);
+            onSelect(id, e);
         } else if (onClick) {
             onClick();
         }

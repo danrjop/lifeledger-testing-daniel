@@ -32,6 +32,7 @@ export default function DashboardPage() {
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsMonths, setAnalyticsMonths] = useState(12); // default 1 year
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const lastSelectedIdx = useRef<number | null>(null);
 
   // Load documents and radar events on mount
   useEffect(() => {
@@ -39,7 +40,7 @@ export default function DashboardPage() {
       try {
         const [docs, radar] = await Promise.all([
           getDocuments(),
-          getRadarEvents(30), // Next 30 days
+          getRadarEvents(365), // Next 30 days
         ]);
         setDocuments(docs);
         setRadarEvents(radar.events);
@@ -63,6 +64,11 @@ export default function DashboardPage() {
     }
   }, [showInsights, analyticsData, analyticsLoading, analyticsMonths]);
 
+  // Filter documents by active filter types
+  const filteredDocuments = activeFilters.size === 0
+    ? documents
+    : documents.filter((doc) => activeFilters.has(doc.type as FilterType));
+
   const handleFilterToggle = useCallback((filter: FilterType) => {
     setActiveFilters((prev) => {
       const next = new Set(prev);
@@ -84,17 +90,35 @@ export default function DashboardPage() {
     setSelectedIds(new Set()); // Clear selection when toggling
   }, []);
 
-  const handleSelectDocument = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
+  const handleSelectDocument = useCallback((id: string, e?: React.MouseEvent) => {
+    const currentIdx = filteredDocuments.findIndex((d) => d.id === id);
+
+    if (e?.shiftKey && lastSelectedIdx.current !== null && currentIdx !== -1) {
+      const start = Math.min(lastSelectedIdx.current, currentIdx);
+      const end = Math.max(lastSelectedIdx.current, currentIdx);
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        for (let i = start; i <= end; i++) {
+          next.add(filteredDocuments[i].id);
+        }
+        return next;
+      });
+    } else {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) {
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
+        return next;
+      });
+    }
+
+    if (currentIdx !== -1) {
+      lastSelectedIdx.current = currentIdx;
+    }
+  }, [filteredDocuments]);
 
   const handleDeleteSelected = useCallback(async () => {
     if (selectedIds.size === 0) return;
@@ -110,7 +134,7 @@ export default function DashboardPage() {
       // Remove deleted documents from state
       setDocuments((prev) => prev.filter((doc) => !selectedIds.has(doc.id)));
       // Refresh radar events (deleted doc may have had a radar event)
-      const radar = await getRadarEvents(30);
+      const radar = await getRadarEvents(365);
       setRadarEvents(radar.events);
       setSelectedIds(new Set());
       setIsSelectMode(false);
@@ -122,12 +146,34 @@ export default function DashboardPage() {
     }
   }, [selectedIds]);
 
+  // Shared polling loop: polls docs + radar every 5s, stops when isDone returns true or 12 polls
+  const startProcessingPoll = useCallback((isDone: (docs: Document[]) => boolean) => {
+    let pollCount = 0;
+    const interval = setInterval(async () => {
+      pollCount++;
+      if (pollCount >= 12) { clearInterval(interval); return; }
+      try {
+        const [docs, radar] = await Promise.all([getDocuments(), getRadarEvents(365)]);
+        setDocuments(docs);
+        setRadarEvents(radar.events);
+        if (isDone(docs)) {
+          clearInterval(interval);
+        } else {
+          pollCount = 0;
+        }
+      } catch { /* ignore */ }
+    }, 5000);
+  }, []);
+
   const handleReviewSubmit = useCallback(async (docId: string, note: string) => {
     await reviewDocument(docId, note);
-    // Refresh documents to update status
     const docs = await getDocuments();
     setDocuments(docs);
-  }, []);
+    startProcessingPoll((docs) => {
+      const reviewed = docs.find((d) => d.id === docId);
+      return reviewed?.radarProcessed !== false;
+    });
+  }, [startProcessingPoll]);
 
   const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -172,7 +218,7 @@ export default function DashboardPage() {
     try {
       const [docs, radar] = await Promise.all([
         getDocuments(),
-        getRadarEvents(30),
+        getRadarEvents(365),
       ]);
       setDocuments(docs);
       setRadarEvents(radar.events);
@@ -184,37 +230,17 @@ export default function DashboardPage() {
       }
     }
 
-    // Poll for document and radar updates (5s interval, 6 polls = 30s total)
-    // OCR and crawler run in background after upload
+    // Poll for document and radar updates until all processing is complete
     if (uploadSucceeded) {
-      let pollCount = 0;
-      const pollInterval = setInterval(async () => {
-        pollCount++;
-        if (pollCount >= 12) {
-          clearInterval(pollInterval);
-          return;
-        }
-        try {
-          const [docs, radar] = await Promise.all([
-            getDocuments(),
-            getRadarEvents(30),
-          ]);
-          setDocuments(docs);
-          setRadarEvents(radar.events);
-        } catch (e) {
-          // Silently ignore polling errors
-        }
-      }, 5000);
+      startProcessingPoll((docs) =>
+        !docs.some((d) => d.status === "Processing" || d.radarProcessed === false)
+      );
     }
 
     setIsUploading(false);
     setAnalyticsData(null); // Invalidate analytics cache so next open refreshes
-  }, []);
+  }, [startProcessingPoll]);
 
-  // Filter documents by active filter types
-  const filteredDocuments = activeFilters.size === 0
-    ? documents
-    : documents.filter((doc) => activeFilters.has(doc.type as FilterType));
 
   const hasContent = documents.length > 0;
 
@@ -248,7 +274,7 @@ export default function DashboardPage() {
               <button
                 onClick={handleDeleteSelected}
                 disabled={isDeleting}
-                className="flex items-center gap-2 px-4 py-2 bg-error text-white rounded-lg hover:bg-error/90 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
               >
                 {isDeleting ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -393,6 +419,7 @@ export default function DashboardPage() {
                     spending={analyticsData.spending}
                     recurring={analyticsData.recurring}
                     trips={analyticsData.trips}
+                    onDocumentClick={(docId) => setViewerDocId(docId)}
                   />
                 ) : null
               )}

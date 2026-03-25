@@ -77,6 +77,7 @@ export interface Document {
   primaryEntity: string;
   primaryDate: string;
   totalValue: string;
+  radarProcessed?: boolean;
 }
 
 export interface SafetyInfo {

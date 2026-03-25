@@ -8,6 +8,9 @@ import EvidenceSection from "@/components/search/EvidenceSection";
 import DocumentViewer from "@/components/ui/DocumentViewer";
 import { searchDocuments, regenerateAnswer, type ChatMessage, type ChartDataItem, type ApiError } from "@/lib/api-client";
 
+const stripCitations = (text: string) =>
+  text.replace(/\s*<!--cited:.*?-->/g, "");
+
 function SearchResults() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
@@ -67,7 +70,7 @@ function SearchResults() {
       const assistantMsg: ChatMessage = {
         id: assistantMsgId,
         role: "assistant",
-        content: result.answer,
+        content: stripCitations(result.answer),
         documents: result.documents,
         sessionId: result.session_id,
         safety: result.safety ?? null,
@@ -117,7 +120,7 @@ function SearchResults() {
       const result = await regenerateAnswer(sessionId);
       setMessages(prev =>
         prev.map(m => m.id === msgId
-          ? { ...m, content: result.answer, safety: result.safety ?? null, groundedness: result.groundedness ?? null, chartData: result.chart_data ?? null }
+          ? { ...m, content: stripCitations(result.answer), safety: result.safety ?? null, groundedness: result.groundedness ?? null, chartData: result.chart_data ?? null }
           : m
         )
       );
