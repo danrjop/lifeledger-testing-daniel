@@ -1,4 +1,4 @@
-import { Document } from "@/lib/types";
+import { Document } from "@/lib/api-client";
 
 interface DocumentCardProps extends Document {
     onClick?: () => void;

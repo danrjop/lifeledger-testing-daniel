@@ -66,7 +66,7 @@ export interface UploadAndProcessResponse {
   rejected?: RejectedFile[];
 }
 
-export type DocumentType = "Receipt" | "Subscription" | "Invoice" | "Fine" | "Form" | "Other";
+export type DocumentType = "Receipt" | "Subscription" | "Invoice" | "Fine" | "Form" | "Payslip" | "Rental Agreement" | "Other";
 export type StatusType = "Processing" | "Needs Review" | "Done";
 
 export interface Document {
@@ -75,7 +75,9 @@ export interface Document {
   fileUrl: string;
   status: StatusType;
   primaryEntity: string;
+  secondaryEntity?: string;
   primaryDate: string;
+  secondaryDate?: string;
   totalValue: string;
   radarProcessed?: boolean;
 }
