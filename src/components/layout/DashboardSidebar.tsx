@@ -4,11 +4,13 @@ import Link from "next/link";
 import { signOutAction } from "@/lib/auth-actions";
 import { useRouter, usePathname } from "next/navigation";
 
-export type FilterType = "Receipt" | "Subscription" | "Form" | "Other";
+export type FilterType = "Receipt" | "Subscription" | "Payslip" | "Rental Agreement" | "Form" | "Other";
 
 const FILTERS: { type: FilterType; label: string }[] = [
   { type: "Receipt", label: "Receipts" },
   { type: "Subscription", label: "Subscriptions" },
+  { type: "Payslip", label: "Payslips" },
+  { type: "Rental Agreement", label: "Rental Agreements" },
   { type: "Form", label: "Forms" },
   { type: "Other", label: "Other" },
 ];

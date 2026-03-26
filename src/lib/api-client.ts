@@ -66,8 +66,15 @@ export interface UploadAndProcessResponse {
   rejected?: RejectedFile[];
 }
 
-export type DocumentType = "Receipt" | "Subscription" | "Invoice" | "Fine" | "Form" | "Other";
+export type DocumentType = "Receipt" | "Subscription" | "Invoice" | "Fine" | "Form" | "Payslip" | "Rental Agreement" | "Other";
 export type StatusType = "Processing" | "Needs Review" | "Done";
+
+export interface LineItem {
+  description: string;
+  qty?: string;
+  unitPrice?: string;
+  amount: string;
+}
 
 export interface Document {
   id: string;
@@ -75,8 +82,12 @@ export interface Document {
   fileUrl: string;
   status: StatusType;
   primaryEntity: string;
+  secondaryEntity?: string;
   primaryDate: string;
+  secondaryDate?: string;
   totalValue: string;
+  lineItems?: LineItem[];
+  metadata?: Record<string, string>;
   radarProcessed?: boolean;
 }
 
@@ -353,6 +364,38 @@ export interface TripAnalytics {
   count: number;
 }
 
+export interface EarningsSummary {
+  employer: string;
+  date: string | null;
+  net_pay: number | null;
+  gross_pay: number | null;
+  doc_id: number;
+}
+
+export interface DeductionsBreakdown {
+  canonical: Record<string, number>;
+  other: Record<string, number>;
+  total_deductions: number;
+}
+
+export interface RecurringIncome {
+  employer: string;
+  frequency: string;
+  avg_net_pay: number;
+  monthly_estimate: number;
+  annual_estimate: number;
+  last_pay_date: string | null;
+  paycheck_count: number;
+}
+
+export interface IncomeAnalytics {
+  earnings: EarningsSummary[];
+  deductions: DeductionsBreakdown;
+  recurring_income: RecurringIncome[];
+  total_net: number;
+  total_gross: number;
+}
+
 /**
  * Get spending analytics: by merchant and by month.
  */
@@ -372,4 +415,11 @@ export async function getRecurringCosts(): Promise<RecurringAnalytics> {
  */
 export async function getTrips(): Promise<TripAnalytics> {
   return apiCall<TripAnalytics>("/analytics/trips");
+}
+
+/**
+ * Get income analytics from payslips.
+ */
+export async function getIncomeAnalytics(months: number = 6): Promise<IncomeAnalytics> {
+  return apiCall<IncomeAnalytics>(`/analytics/income?months=${months}`);
 }
