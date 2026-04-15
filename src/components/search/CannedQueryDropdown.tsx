@@ -8,6 +8,7 @@ interface Props {
   onSelect: (query: string) => void;
   size?: "lg" | "md";
   disabled?: boolean;
+  openDirection?: "down" | "up";
 }
 
 export default function CannedQueryDropdown({
@@ -15,6 +16,7 @@ export default function CannedQueryDropdown({
   onSelect,
   size = "lg",
   disabled,
+  openDirection = "down",
 }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -72,7 +74,11 @@ export default function CannedQueryDropdown({
       </button>
 
       {open && (
-        <div className="absolute z-40 mt-2 w-full max-h-[28rem] overflow-y-auto rounded-xl bg-bg-primary border border-bg-tertiary shadow-2xl animate-fade-in">
+        <div
+          className={`absolute z-40 w-full max-h-[28rem] overflow-y-auto rounded-xl bg-bg-primary border border-bg-tertiary shadow-2xl animate-fade-in ${
+            openDirection === "up" ? "bottom-full mb-2" : "top-full mt-2"
+          }`}
+        >
           {Object.entries(grouped).map(([category, queries]) => (
             <div key={category}>
               <div className="px-3 pt-3 pb-1 text-xs font-semibold uppercase tracking-wider text-fg-tertiary">

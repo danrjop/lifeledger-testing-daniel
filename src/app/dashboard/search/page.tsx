@@ -253,6 +253,7 @@ function SearchResults() {
             placeholder="Ask another question…"
             onSelect={handleFollowUpSelect}
             disabled={isLoading}
+            openDirection="up"
           />
         </div>
       </div>

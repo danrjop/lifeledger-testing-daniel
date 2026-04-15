@@ -1,6 +1,7 @@
 /**
- * Canned demo queries that emulate the LifeLedger agent's tool outputs.
- * Each entry maps a user-selectable query to a fully-formed `SearchResult`.
+ * Canned demo queries — every fact below is grounded in the actual
+ * documents in `demo-data.ts` (which themselves are grounded in what's
+ * visible in the corresponding image file in /public/demo/).
  */
 
 import type { ChartDataItem, Document, SearchResult } from "./api-client-types";
@@ -12,15 +13,15 @@ const docsByIds = (ids: string[]): Document[] => ids.map(docById).filter(Boolean
 export interface CannedQuery {
   id: string;
   category: string;
-  label: string;          // shown in dropdown
-  query: string;          // shown as the user message
+  label: string;
+  query: string;
   result: Omit<SearchResult, "session_id" | "conversation_id" | "query">;
 }
 
-// ── Chart presets reused below ─────────────────────────────────────
+// ── Charts derived from the seed data ──────────────────────────────
 const merchantChart: ChartDataItem = {
   type: "spending_by_merchant",
-  title: "Top Merchants by Spend",
+  title: "Top Merchants by Spend (USD-equivalent)",
   data: DEMO_SPENDING.by_merchant.map((m) => ({
     merchant: m.merchant,
     total: m.total,
@@ -44,51 +45,46 @@ const subscriptionsTable: ChartDataItem = {
   })),
 };
 
+const yongfattTable: ChartDataItem = {
+  type: "receipt_table",
+  title: "Yongfatt Enterprise — visits",
+  data: DEMO_DOCUMENTS.filter((d) => d.primaryEntity === "Yongfatt Enterprise").map((d) => ({
+    merchant: d.primaryEntity,
+    date: d.primaryDate,
+    total: parseFloat(d.totalValue.replace(/[^0-9.]/g, "")),
+    doc_id: d.id,
+  })),
+};
+
 const allReceiptsTable: ChartDataItem = {
   type: "receipt_table",
   title: "All Receipts",
   data: DEMO_DOCUMENTS.filter((d) => d.type === "Receipt").map((d) => ({
     merchant: d.primaryEntity,
     date: d.primaryDate,
-    total: parseFloat(d.totalValue.replace(/[$,]/g, "")),
+    total: parseFloat(d.totalValue.replace(/[^0-9.]/g, "")),
     doc_id: d.id,
   })),
-};
-
-const wholeFoodsTable: ChartDataItem = {
-  type: "receipt_table",
-  title: "Whole Foods Receipts",
-  data: DEMO_DOCUMENTS.filter((d) => d.primaryEntity === "Whole Foods Market").map((d) => ({
-    merchant: d.primaryEntity,
-    date: d.primaryDate,
-    total: parseFloat(d.totalValue.replace(/[$,]/g, "")),
-    doc_id: d.id,
-  })),
-};
-
-const tripTable: ChartDataItem = {
-  type: "receipt_table",
-  title: "NYC Trip — Documents",
-  data: [
-    { merchant: "United Airlines (SFO→JFK)", date: docById("6").primaryDate, total: 418.20 },
-    { merchant: "Allianz Travel Insurance", date: docById("15").primaryDate, total: 48.00 },
-  ],
 };
 
 const deductionsTable: ChartDataItem = {
   type: "receipt_table",
-  title: "Paycheck Deductions (last period)",
-  data: [
-    ...Object.entries(DEMO_INCOME.deductions.canonical),
-    ...Object.entries(DEMO_INCOME.deductions.other),
-  ].map(([k, v]) => ({ merchant: k, date: "Per paycheck", total: v })),
+  title: "Per-paycheck Deductions",
+  data: Object.entries(DEMO_INCOME.deductions.canonical).map(([k, v]) => ({
+    merchant: k,
+    date: "Per paycheck",
+    total: v,
+  })),
 };
 
-const incomeVsSpendingChart: ChartDataItem = {
-  type: "spending_over_time",
-  title: "Spending vs Monthly Take-Home",
-  data: DEMO_SPENDING.by_month.map((m) => ({ month: m.month, total: m.total })),
-  summary: { take_home: DEMO_INCOME.recurring_income[0].monthly_estimate },
+const earningsChart: ChartDataItem = {
+  type: "spending_by_merchant",
+  title: "Net Pay by Pay Period",
+  data: DEMO_INCOME.earnings.map((e) => ({
+    merchant: e.date ?? "—",
+    total: e.net_pay ?? 0,
+    count: 1,
+  })),
 };
 
 // ── Canned answers ─────────────────────────────────────────────────
@@ -100,13 +96,13 @@ export const CANNED_QUERIES: CannedQuery[] = [
     query: "How much have I spent in total?",
     result: {
       answer:
-        "Across all of your tracked receipts, you've spent **$2,139.43** so far. That spans **8 distinct merchants** and **11 receipts**, with the heaviest months being travel-related.",
-      documents: docsByIds(["3", "5", "12", "17", "24", "25", "26", "27"]),
+        "Across receipts, invoices, and subscription charges, your total tracked spend is **~$154.34** (USD-equivalent — Malaysian ringgit converted at ~RM 4.5/USD). The bulk is **OpenAI ChatGPT Plus** ($60 across 3 months) plus the small **Yongfatt Enterprise** and **Pasar Raya Mega Maju** purchases from the Malaysian receipts.",
+      documents: docsByIds(["3", "4", "17", "19", "20", "24", "25", "26", "27", "2"]),
       chart_data: [monthlyChart],
       followUps: [
         "Where do I spend the most?",
-        "Show me my spending over time",
-        "How much did I spend last month?",
+        "Show me my Yongfatt receipts",
+        "What subscriptions am I paying for?",
       ],
     },
   },
@@ -117,13 +113,13 @@ export const CANNED_QUERIES: CannedQuery[] = [
     query: "Where do I spend the most?",
     result: {
       answer:
-        "Your top merchants are **United Airlines ($418.20)** thanks to a recent NYC trip, then **Bay Area Dental ($240.00)** and **Costco ($214.55)**. Groceries (Whole Foods + Costco combined) account for ~$414, your single largest category.",
-      documents: docsByIds(["6", "4", "24", "3", "25", "17", "27"]),
+        "Your top merchants are **OpenAI ChatGPT Plus ($60.00)** — three monthly charges — and **Yongfatt Enterprise ($57.21 USD-eq)** across three Malaysian-receipt visits. **SFO Parking** and **Pasar Raya Mega Maju** are next, each under $20 in total.",
+      documents: docsByIds(["17", "19", "20", "3", "24", "27", "2", "26", "4", "25"]),
       chart_data: [merchantChart],
       followUps: [
-        "Show me my Whole Foods receipts",
-        "Did I take any trips recently?",
-        "Break down my spending by month",
+        "Show me my Yongfatt receipts",
+        "What subscriptions am I paying for?",
+        "How has my spending trended month-over-month?",
       ],
     },
   },
@@ -134,30 +130,30 @@ export const CANNED_QUERIES: CannedQuery[] = [
     query: "How has my spending trended month-over-month?",
     result: {
       answer:
-        "Your spending has bounced around — peaking 2 months ago at **$744.82** (mostly the NYC trip + Costco run) and dropping to **$197.60** so far this month. Average monthly spend is **~$356**.",
-      documents: docsByIds(["6", "24", "3", "25", "17"]),
+        "Spending has been remarkably steady — **$32–47 per month** across the last 4 months. The slight bump 2 months ago was the larger Yongfatt visit (RM 124.50). Your only recurring outflow is the **$20/mo ChatGPT Plus** subscription.",
+      documents: docsByIds(["3", "24", "27", "17", "19", "20"]),
       chart_data: [monthlyChart],
       followUps: [
-        "What drove the spike two months ago?",
-        "Compare income to spending",
-        "What were my biggest single purchases?",
+        "Where do I spend the most?",
+        "What subscriptions am I paying for?",
+        "Am I saving more than I spend?",
       ],
     },
   },
   {
-    id: "wholefoods-receipts",
+    id: "yongfatt-receipts",
     category: "Receipts",
-    label: "Show me my Whole Foods receipts",
-    query: "Show me my Whole Foods receipts",
+    label: "Show me my Yongfatt receipts",
+    query: "Show me my Yongfatt receipts",
     result: {
       answer:
-        "I found **2 Whole Foods receipts** totaling **$199.49**. Most recent was this month for **$87.42** (organic produce, salmon, sourdough). The earlier visit two months ago was a larger restock at $112.07.",
-      documents: docsByIds(["3", "25"]),
-      chart_data: [wholeFoodsTable],
+        "I found **3 Yongfatt Enterprise receipts** (Johor Bahru, Malaysia) totaling **RM 261.61** (~$57.21 USD). The original was a single \"ELEGANT SCH TR BAG 15\" for RM 80.91 on 25/12/2018; the other two are repeat visits with no itemized lines captured.",
+      documents: docsByIds(["3", "24", "27"]),
+      chart_data: [yongfattTable],
       followUps: [
-        "Show all my grocery receipts",
-        "How much did I spend on food this year?",
-        "What healthy items did I buy?",
+        "What did I buy from Pasar Raya?",
+        "List all my receipts",
+        "Show me my OpenAI charges",
       ],
     },
   },
@@ -168,13 +164,13 @@ export const CANNED_QUERIES: CannedQuery[] = [
     query: "List all my receipts",
     result: {
       answer:
-        "Here are all **9 receipts** I have on file, totaling **$835.84**. The mix is grocery, pharmacy, and food delivery.",
+        "Here are all **7 receipts** I have on file — 3 Yongfatt visits, 2 Pasar Raya, and 2 SFO parking stops. Mixed currencies — Malaysian receipts are RM, US receipts are USD.",
       documents: DEMO_DOCUMENTS.filter((d) => d.type === "Receipt"),
       chart_data: [allReceiptsTable],
       followUps: [
-        "Which were food delivery?",
-        "Show only grocery receipts",
-        "What did I spend the most on?",
+        "Show me my Yongfatt receipts",
+        "What was the most expensive purchase?",
+        "Where do I spend the most?",
       ],
     },
   },
@@ -185,46 +181,45 @@ export const CANNED_QUERIES: CannedQuery[] = [
     query: "What subscriptions am I paying for?",
     result: {
       answer:
-        "You have **3 active subscriptions** costing **$82.47/month** (~**$989.64/year**):\n\n- **Netflix** — $15.49/mo, renews in 20 days\n- **Spotify Premium** — $11.99/mo, renews in 23 days\n- **Adobe Creative Cloud** — $54.99/mo, renews in 30 days\n\nAdobe is by far your most expensive — worth checking if you still need the full suite.",
-      documents: docsByIds(["19", "20", "21"]),
+        "You have **1 active subscription**: **OpenAI ChatGPT Plus** at **$20/month** (~$240/year), paid on Visa ending **7686**. The next renewal is in 13 days. The original sign-up confirmation came in on Jan 27 2026 with a free first month, and there are 2 follow-on renewals on file.",
+      documents: docsByIds(["17", "19", "20"]),
       chart_data: [subscriptionsTable],
       followUps: [
-        "Which subscription should I cancel first?",
-        "When do they all renew?",
-        "How much do they cost annually?",
+        "When does ChatGPT Plus renew next?",
+        "What's the order number for my subscription?",
+        "Cancel my ChatGPT Plus reminder",
       ],
     },
   },
   {
     id: "trips",
     category: "Trips",
-    label: "Did I take any trips recently?",
-    query: "Did I take any trips recently?",
+    label: "Did I take any trips?",
+    query: "Did I take any trips?",
     result: {
       answer:
-        "Yes — I detected **1 trip to NYC** about 2 months ago, totaling **$466.20** across 2 documents (United flight SFO→JFK and an Allianz travel insurance policy).",
+        "I see one travel artifact: a **boarding pass from 2013** — passenger **Djokic Ksenija**, flight **HG285** **Belgrade (BEG) → Washington DC (DCA)** on 21 May 2013. There's no fare on the pass and no associated booking receipt, so trip spend is unknown.",
       documents: docsByIds(["6", "15"]),
-      chart_data: [tripTable],
       followUps: [
-        "How much did I spend on the NYC trip?",
         "Do I have travel insurance?",
-        "Are there any other trips coming up?",
+        "Show my Allianz policy",
+        "What other documents are old (pre-2020)?",
       ],
     },
   },
   {
-    id: "unhealthy",
-    category: "Items",
-    label: "What unhealthy items did I buy?",
-    query: "What unhealthy items did I buy?",
+    id: "travel-insurance",
+    category: "Trips",
+    label: "Do I have travel insurance?",
+    query: "Do I have travel insurance?",
     result: {
       answer:
-        "Scanning line items across your receipts, the less-healthy purchases include:\n\n- **DoorDash · Shake Shack** — ShackBurger, cheese fries, vanilla shake ($20.77)\n- **Whole Foods** — vanilla cold brew (×2)\n- **Target** — \"Snack assortment\" ($27.51)\n\nMost of your grocery items (salmon, sourdough, strawberries) are on the healthier side.",
-      documents: docsByIds(["12", "3", "17"]),
+        "Yes — an **Allianz Comprehensive Coverage** policy on file (underwritten by CUMIS General Insurance, Canadian). Highlights:\n\n- Trip cancellation: **up to $20,000 CAD**\n- Emergency medical: **up to $5,000,000 CAD**\n- Baggage: **$1,000 CAD**\n- Eligibility: travellers age 64 or younger, max trip length **30 days**",
+      documents: docsByIds(["15"]),
       followUps: [
-        "What healthy items did I buy?",
-        "Show all DoorDash orders",
-        "How much did I spend on snacks?",
+        "Did I take any trips?",
+        "What are my insurance documents?",
+        "Show my health insurance",
       ],
     },
   },
@@ -235,12 +230,12 @@ export const CANNED_QUERIES: CannedQuery[] = [
     query: "Give me an overview of my documents",
     result: {
       answer:
-        "You have **27 documents** on file:\n\n- **9** Receipts\n- **3** Subscriptions\n- **3** Forms (insurance, medical letter)\n- **2** Payslips\n- **1** Invoice (Bay Area Dental)\n- **1** Fine (SFO parking)\n- **1** Rental Agreement\n- **7** Other (boarding pass, sticky notes, ID, photos)\n\n**2 documents** still need your review.",
+        "You have **27 documents** on file:\n\n- **7** Receipts (Yongfatt × 3, Pasar Raya × 2, SFO Parking × 2)\n- **3** Subscriptions (all ChatGPT Plus)\n- **4** Payslips (Smith and Company)\n- **4** Forms (BCBS card, Allianz policy, antibiotic packet, Chang Gung letter)\n- **1** Invoice (Pasar Raya pet food)\n- **1** Rental Agreement (Schein/Reagan template)\n- **7** Other (boarding pass, McLovin ID, sticky note, calendar note, coupons, concrete-block tag, crying-cat meme)\n\n**3** documents need your review — the concrete-block price tag, the crying-cat photo, and the blank Chang Gung letter template.",
       documents: DEMO_DOCUMENTS.slice(0, 8),
       followUps: [
         "What needs my review?",
-        "When was my last document added?",
         "Show me only my forms",
+        "What's the oldest document I have?",
       ],
     },
   },
@@ -251,28 +246,28 @@ export const CANNED_QUERIES: CannedQuery[] = [
     query: "Find my insurance documents",
     result: {
       answer:
-        "I found **2 insurance documents** plus a related medical letter:\n\n- **Blue Shield Health** — PPO Gold plan, renews in 45 days\n- **Allianz Travel Insurance** — covers your NYC trip\n- **Dr. Patel letter of medical necessity** — referenced your Blue Shield plan",
-      documents: docsByIds(["13", "15", "11"]),
+        "I found **2 insurance documents**:\n\n- **BlueCross BlueShield (PPO)** — Member ID XYZ123456789. $15 office-visit copay, $35 specialist, $75 emergency, $50 deductible.\n- **Allianz Comprehensive Coverage** — Canadian travel insurance, up to $5M CAD emergency medical.\n\nThe Anbicyn antibiotic packet and Chang Gung Memorial letter template are also medical-adjacent if you wanted to widen the search.",
+      documents: docsByIds(["13", "15", "5", "11"]),
       followUps: [
-        "When does my health insurance renew?",
-        "What does my travel insurance cover?",
+        "What's my BCBS deductible?",
+        "Do I have travel insurance?",
         "Find anything about prescriptions",
       ],
     },
   },
   {
-    id: "search-tax",
+    id: "search-prescriptions",
     category: "Search",
-    label: "Find anything about taxes",
-    query: "Find anything about taxes",
+    label: "Find anything about prescriptions",
+    query: "Find anything about prescriptions",
     result: {
       answer:
-        "Tax-relevant documents I can see:\n\n- **2 payslips from Acme Robotics** with $812.50 federal + $287.40 state withheld per period\n- **Bay Area Dental invoice** ($240) — potentially deductible as a medical expense\n- **Dr. Patel letter of medical necessity** — supports medical deductions\n\nYour year-to-date federal withholding is approximately **$1,625**.",
-      documents: docsByIds(["22", "23", "4", "11"]),
+        "Two medical artifacts:\n\n- **Anbicyn F.C. Tablets 625 mg** — packet photo. Active ingredients: amoxicillin trihydrate + potassium clavulanate (a common antibiotic combo). No price visible on the packet.\n- **Chang Gung Memorial Hospital (Taipei)** — a **blank letter template**. The Name / Diagnosis / Date fields aren't filled in, so it doesn't actually record a prescription.\n\nIf you uploaded a real script you'd want me to extract dosing from, the Chang Gung sheet is unfortunately just a template.",
+      documents: docsByIds(["5", "11"]),
       followUps: [
-        "What are my biggest deductions?",
-        "Show me all my paystubs",
-        "Estimate my annual tax bill",
+        "Find my insurance documents",
+        "What needs my review?",
+        "Give me an overview of my documents",
       ],
     },
   },
@@ -283,19 +278,9 @@ export const CANNED_QUERIES: CannedQuery[] = [
     query: "What's my income looking like?",
     result: {
       answer:
-        "You have **2 paystubs from Acme Robotics**, both showing **$6,250 gross / $4,612.30 net** bi-weekly. That projects to **~$9,991/month** take-home and **~$119,896 annually**. Your last paycheck was earlier this month.",
-      documents: docsByIds(["22", "23"]),
-      chart_data: [
-        {
-          type: "spending_by_merchant",
-          title: "Earnings by Pay Period",
-          data: DEMO_INCOME.earnings.map((e) => ({
-            merchant: e.date,
-            total: e.net_pay ?? 0,
-            count: 1,
-          })),
-        },
-      ],
+        "You have **4 pay stubs from Smith and Company**, paid **bi-weekly** at **$18/hr** (overtime $27/hr). The most recent stub shows **$774.00 gross** for 40 reg + 2 OT hours, with **$560.71 net** after $213.29 in deductions. Projected to **~$1,203/month** take-home or **~$14,442/year** at this cadence.",
+      documents: docsByIds(["14", "21", "22", "23"]),
+      chart_data: [earningsChart],
       followUps: [
         "What are my biggest deductions?",
         "Am I saving more than I spend?",
@@ -310,13 +295,13 @@ export const CANNED_QUERIES: CannedQuery[] = [
     query: "What are my biggest deductions?",
     result: {
       answer:
-        "From your latest payslip, deductions total **$2,149.73** per period. Largest are:\n\n- **Federal Tax** — $812.50\n- **Social Security** — $387.50\n- **401(k) contribution** — $312.50\n- **State Tax** — $287.40\n- **Health Insurance** — $184.20\n- **Medicare** — $90.63\n- **Commuter Benefit** — $75.00",
-      documents: docsByIds(["22"]),
+        "From your latest Smith & Co. pay stub, deductions total **$213.29** per period:\n\n- **Federal W/H** — $69.45\n- **401(k)** — $52.00\n- **FICA** — $47.99\n- **CA State W/H** — $26.45\n- **Medicare** — $11.22\n- **CA State DI** — $6.19",
+      documents: docsByIds(["14"]),
       chart_data: [deductionsTable],
       followUps: [
-        "How much am I saving in 401(k)?",
-        "Estimate my annual tax bill",
         "What's my net pay?",
+        "How much am I saving in 401(k)?",
+        "What's my income looking like?",
       ],
     },
   },
@@ -327,13 +312,13 @@ export const CANNED_QUERIES: CannedQuery[] = [
     query: "Am I saving more than I spend?",
     result: {
       answer:
-        "Yes — by a wide margin. You earn **~$9,991/month** take-home but average **~$356/month** in tracked spending. That leaves roughly **$9,635/month** unaccounted for (likely rent, untracked bills, savings).\n\nDon't forget your **$2,450 rent** plus **$82.47/mo** in subscriptions are recurring outflows.",
-      documents: docsByIds(["22", "23", "1", "19", "20", "21"]),
-      chart_data: [incomeVsSpendingChart],
+        "On paper yes, by a comfortable margin. Take-home is **~$1,203/month** from Smith & Co.; tracked spending averages **~$38/month**. That implies ~$1,165/month of headroom — but note that **rent isn't in your tracked outflows yet** (your lease shows $2,450/mo, which would flip the math), and the Malaysian receipts are several years old so they don't reflect current habits.",
+      documents: docsByIds(["14", "1", "17"]),
+      chart_data: [monthlyChart],
       followUps: [
         "What recurring costs am I paying?",
-        "When is my rent due?",
-        "Show me my spending trend",
+        "When does my lease end?",
+        "What's my income looking like?",
       ],
     },
   },
@@ -344,27 +329,28 @@ export const CANNED_QUERIES: CannedQuery[] = [
     query: "How often do I get paid?",
     result: {
       answer:
-        "**Acme Robotics** pays you **bi-weekly** (every 14 days). Average net is **$4,612.30** per check, projecting to **~$119,896 annually**. Your most recent paycheck was earlier this month.",
-      documents: docsByIds(["22", "23"]),
+        "**Smith and Company** pays you **bi-weekly** as an hourly employee at **$18/hr** ($27 OT). Average net is **$555.61** per check across the 4 stubs on file, projecting to **~$14,442/year**.",
+      documents: docsByIds(["14", "21", "22", "23"]),
       followUps: [
-        "When's my next paycheck?",
-        "What's my annual income?",
-        "Compare my income to my spending",
+        "What are my biggest deductions?",
+        "Am I saving more than I spend?",
+        "What's my pay rate?",
       ],
     },
   },
   {
     id: "lease",
     category: "Lease",
-    label: "When does my lease end?",
-    query: "When does my lease end?",
+    label: "Show me my lease details",
+    query: "Show me my lease details",
     result: {
-      answer: `Your lease at **742 Evergreen Terrace, Apt 4B** with **Greenfield Property Mgmt** ends on **${docById("1").secondaryDate}** (about 10 months out). Monthly rent is **$2,450** with a matching **$2,450 security deposit**.`,
+      answer:
+        `Your lease document on file is the **Sample Rental Lease Agreement** with **Lindsay Schein (landlord)** and **Karla Reagan (tenant)**. Heads up — most fields on the template (premises address, exact term length) are blanks, so I can only confirm the parties. Monthly rent is set at **$2,450** with a term checkpoint flagged for **${docById("1").secondaryDate}**.`,
       documents: docsByIds(["1"]),
       followUps: [
-        "How much is my rent?",
         "Who's my landlord?",
-        "Show me the lease agreement",
+        "What's my monthly rent?",
+        "What deadlines are coming up?",
       ],
     },
   },
@@ -375,12 +361,12 @@ export const CANNED_QUERIES: CannedQuery[] = [
     query: "What deadlines are coming up?",
     result: {
       answer:
-        "You have **6 upcoming deadlines** in the next 45 days:\n\n- **SFO parking ticket** ($78) due in 11 days\n- **Bay Area Dental invoice** ($240) due in 18 days\n- **Netflix renewal** ($15.49) in 20 days\n- **Spotify renewal** ($11.99) in 23 days\n- **Adobe CC renewal** ($54.99) in 30 days\n- **Blue Shield policy renewal** in 45 days",
-      documents: docsByIds(["2", "4", "19", "20", "21", "13"]),
+        "Three things flagged on the radar:\n\n- **ChatGPT Plus renews** in 13 days ($20)\n- **Important event** on **2026-04-24** — pulled from a Notes screenshot you uploaded that just says \"Important stuff happening\" (you may want to fill that in)\n- **Lease term checkpoint** in 305 days\n\nNo unpaid bills — your SFO parking receipts are both already paid (Visa, $8 and $12).",
+      documents: docsByIds(["17", "10", "1"]),
       followUps: [
-        "Which is most urgent?",
-        "How much do I owe in total?",
-        "When does my lease end?",
+        "What's the 'Important event' note about?",
+        "When does ChatGPT Plus renew next?",
+        "Show me my lease details",
       ],
     },
   },
@@ -391,12 +377,28 @@ export const CANNED_QUERIES: CannedQuery[] = [
     query: "What documents need my review?",
     result: {
       answer:
-        "**2 documents** need your attention — both flagged because OCR couldn't extract structured fields:\n\n- A photo of a concrete block (probably uploaded by mistake)\n- A photo of a cat (also probably uploaded by mistake)\n\nYou can mark them done from the dashboard.",
-      documents: docsByIds(["7", "9"]),
+        "**3 documents** need attention — OCR couldn't extract structured fields from any of them:\n\n- **Concrete block price tag** ($2.08, Aisle 39 Bay 9 Loc 15) — looks like an in-store photo, not a receipt.\n- **Crying-cat meme** — not a document; probably uploaded by mistake.\n- **Chang Gung Memorial letter template** — blank form, no patient info filled in.\n\nYou can mark each as Done from the dashboard, or delete them.",
+      documents: docsByIds(["7", "9", "11"]),
       followUps: [
-        "Delete the misfires",
         "Give me an overview of my documents",
-        "What was my last upload?",
+        "Delete the misfires",
+        "Show me only my forms",
+      ],
+    },
+  },
+  {
+    id: "old-id",
+    category: "Library",
+    label: "What's the McLovin ID about?",
+    query: "What's the McLovin ID about?",
+    result: {
+      answer:
+        "It's the **\"McLovin\" Hawaii Driver License** from the movie *Superbad* — number **01-47-87441**, DOB 06/03/1981, address 892 Momona St, Honolulu HI 96820. **Expired in June 2008** and obviously not a real ID, but I kept it filed so you can find it again.",
+      documents: docsByIds(["16"]),
+      followUps: [
+        "Give me an overview of my documents",
+        "What needs my review?",
+        "What's the oldest document I have?",
       ],
     },
   },
@@ -406,13 +408,13 @@ export const CANNED_BY_QUERY: Record<string, CannedQuery> = Object.fromEntries(
   CANNED_QUERIES.map((q) => [q.query.toLowerCase(), q])
 );
 
-// Variant answers for the "regenerate" button — cycles through these
+// Variant answers for the "regenerate" button
 export const REGENERATE_VARIANTS: Record<string, string[]> = {
   "total-spending": [
-    "Tallying all your receipts, you're at **$2,139.43** total spend across 11 transactions and 8 merchants. Travel and groceries dominate.",
-    "Total tracked spending is **$2,139.43**. Worth noting: this only counts receipts you've uploaded — recurring rent/subscriptions aren't in this number.",
+    "Tallying every receipt, invoice, and subscription charge: **$154.34** USD-equivalent. Three of those dollars per month are recurring (ChatGPT Plus); the rest are one-off Malaysian-receipt purchases plus two SFO parking stops.",
+    "Total tracked spend is **$154.34**. Worth noting: rent ($2,450/mo on the lease) isn't counted because there's no rent payment receipt on file — only the lease agreement.",
   ],
   "subscriptions": [
-    "Three active subscriptions — **Adobe Creative Cloud ($54.99/mo)**, **Netflix ($15.49/mo)**, and **Spotify ($11.99/mo)** — totaling **$82.47/month**. Adobe is your biggest by a 4× margin.",
+    "Just one: **ChatGPT Plus** at **$20/mo**. Three charges on file (Jan 27, ~Feb 27, ~Mar 27). Renews next in 13 days on Visa-7686.",
   ],
 };
