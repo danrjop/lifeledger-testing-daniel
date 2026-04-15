@@ -13,6 +13,10 @@ import { searchDocuments, regenerateAnswer, type ChatMessage, type ChartDataItem
 const stripCitations = (text: string) =>
   text.replace(/\s*<!--cited:.*?-->/g, "");
 
+// Module-level monotonic counter — guarantees unique message IDs even if
+// two calls land in the same millisecond (Date.now() collisions).
+let msgCounter = 0;
+
 function SearchResults() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
@@ -43,8 +47,9 @@ function SearchResults() {
   const sendMessage = useCallback(async (query: string) => {
     if (!query.trim() || isLoading) return;
 
-    const userMsgId = `user-${Date.now()}`;
-    const assistantMsgId = `assistant-${Date.now()}`;
+    msgCounter += 1;
+    const userMsgId = `user-${Date.now()}-${msgCounter}`;
+    const assistantMsgId = `assistant-${Date.now()}-${msgCounter}`;
 
     // Add user message + loading placeholder
     const userMsg: ChatMessage = {

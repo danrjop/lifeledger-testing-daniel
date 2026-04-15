@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import { CANNED_QUERIES } from "@/lib/canned-queries";
 
 interface Props {
@@ -11,6 +12,9 @@ interface Props {
   openDirection?: "down" | "up";
 }
 
+const PANEL_MAX_H = 448; // px — matches max-h-[28rem]
+const GAP = 8;            // px gap between button and panel
+
 export default function CannedQueryDropdown({
   placeholder = "Try an example question…",
   onSelect,
@@ -19,11 +23,42 @@ export default function CannedQueryDropdown({
   openDirection = "down",
 }: Props) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState<{ left: number; top: number; width: number } | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
+  // Recompute panel position whenever it opens / on resize / on scroll.
+  useLayoutEffect(() => {
+    if (!open || !btnRef.current) return;
+    const update = () => {
+      const rect = btnRef.current!.getBoundingClientRect();
+      const panelH = panelRef.current?.offsetHeight ?? PANEL_MAX_H;
+      const top =
+        openDirection === "up"
+          ? Math.max(8, rect.top - panelH - GAP)
+          : rect.bottom + GAP;
+      setCoords({ left: rect.left, top, width: rect.width });
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [open, openDirection]);
+
+  // Close on outside click.
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        wrapRef.current &&
+        !wrapRef.current.contains(target) &&
+        panelRef.current &&
+        !panelRef.current.contains(target)
+      ) {
         setOpen(false);
       }
     };
@@ -31,7 +66,6 @@ export default function CannedQueryDropdown({
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, [open]);
 
-  // Group queries by category
   const grouped = CANNED_QUERIES.reduce<Record<string, typeof CANNED_QUERIES>>(
     (acc, q) => {
       (acc[q.category] ||= []).push(q);
@@ -43,8 +77,9 @@ export default function CannedQueryDropdown({
   const sizeCls = size === "lg" ? "py-3 text-lg pl-12 pr-10" : "py-2 text-base pl-10 pr-8";
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={wrapRef} className="relative">
       <button
+        ref={btnRef}
         type="button"
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
@@ -73,34 +108,43 @@ export default function CannedQueryDropdown({
         </svg>
       </button>
 
-      {open && (
-        <div
-          className={`absolute z-40 w-full max-h-[28rem] overflow-y-auto rounded-xl bg-bg-primary border border-bg-tertiary shadow-2xl animate-fade-in ${
-            openDirection === "up" ? "bottom-full mb-2" : "top-full mt-2"
-          }`}
-        >
-          {Object.entries(grouped).map(([category, queries]) => (
-            <div key={category}>
-              <div className="px-3 pt-3 pb-1 text-xs font-semibold uppercase tracking-wider text-fg-tertiary">
-                {category}
+      {open && coords && typeof document !== "undefined" &&
+        createPortal(
+          <div
+            ref={panelRef}
+            style={{
+              position: "fixed",
+              left: coords.left,
+              top: coords.top,
+              width: coords.width,
+              maxHeight: PANEL_MAX_H,
+              zIndex: 1000,
+            }}
+            className="overflow-y-auto rounded-xl bg-bg-primary border border-bg-tertiary shadow-2xl animate-fade-in"
+          >
+            {Object.entries(grouped).map(([category, queries]) => (
+              <div key={category}>
+                <div className="px-3 pt-3 pb-1 text-xs font-semibold uppercase tracking-wider text-fg-tertiary">
+                  {category}
+                </div>
+                {queries.map((q) => (
+                  <button
+                    key={q.id}
+                    type="button"
+                    onClick={() => {
+                      setOpen(false);
+                      onSelect(q.query);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-fg-primary hover:bg-bg-secondary transition-colors"
+                  >
+                    {q.label}
+                  </button>
+                ))}
               </div>
-              {queries.map((q) => (
-                <button
-                  key={q.id}
-                  type="button"
-                  onClick={() => {
-                    setOpen(false);
-                    onSelect(q.query);
-                  }}
-                  className="w-full text-left px-3 py-2 text-sm text-fg-primary hover:bg-bg-secondary transition-colors"
-                >
-                  {q.label}
-                </button>
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
