@@ -1,20 +1,11 @@
-import { CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider";
-import { createHmac } from "crypto";
+// Demo build: Cognito is not used. This file is kept as a no-op stub so any
+// stale import path resolves without pulling in the AWS SDK.
 
-const cognitoClient = new CognitoIdentityProviderClient({
-  region: process.env.AWS_COGNITO_REGION!,
-});
-
-export default cognitoClient;
-
-export function computeSecretHash(username: string): string {
-  const clientId = process.env.AWS_COGNITO_CLIENT_ID!;
-  const clientSecret = process.env.AWS_COGNITO_CLIENT_SECRET!;
-  const hmac = createHmac("sha256", clientSecret);
-  hmac.update(username + clientId);
-  return hmac.digest("base64");
+const noop = {} as Record<string, never>;
+export default noop;
+export function computeSecretHash(_username: string): string {
+  return "";
 }
-
 export function getClientId(): string {
-  return process.env.AWS_COGNITO_CLIENT_ID!;
+  return "";
 }

@@ -8,9 +8,6 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import { getSessionAction, getIdTokenAction } from "@/lib/auth-actions";
-import { useCookieConsent } from "@/lib/cookie-consent-context";
-import { setTokenGetter } from "@/lib/api-client";
 
 interface User {
   userId: string;
@@ -26,6 +23,12 @@ interface AuthContextType {
   getIdToken: () => Promise<string | null>;
 }
 
+const DEMO_USER: User = {
+  userId: "demo-sally-001",
+  username: "Sally",
+  email: "sally@lifeledger.demo",
+};
+
 const AuthContext = createContext<AuthContextType>({
   user: null,
   isAuthenticated: false,
@@ -34,42 +37,25 @@ const AuthContext = createContext<AuthContextType>({
   getIdToken: async () => null,
 });
 
+/**
+ * Demo AuthProvider — auto-authenticates as Sally on mount so any page
+ * (including /dashboard) is reachable without a real login flow.
+ */
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { hasConsented } = useCookieConsent();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const checkAuth = useCallback(async () => {
-    try {
-      const result = await getSessionAction();
-      if (result.success && result.user) {
-        setUser(result.user);
-      } else {
-        setUser(null);
-      }
-    } catch {
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
+    setUser(DEMO_USER);
+    setIsLoading(false);
   }, []);
 
-  const getIdToken = useCallback(async () => {
-    return getIdTokenAction();
+  const getIdToken = useCallback(async () => "demo-token", []);
+
+  useEffect(() => {
+    setUser(DEMO_USER);
+    setIsLoading(false);
   }, []);
-
-  // Register token getter for api-client
-  useEffect(() => {
-    setTokenGetter(getIdToken);
-  }, [getIdToken]);
-
-  useEffect(() => {
-    if (hasConsented) {
-      checkAuth();
-    } else {
-      setIsLoading(false);
-    }
-  }, [hasConsented, checkAuth]);
 
   return (
     <AuthContext.Provider

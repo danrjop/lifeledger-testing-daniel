@@ -1,425 +1,282 @@
 /**
- * API client for LifeLedger backend.
- * Calls FastAPI backend directly with auth token from Cognito.
+ * Frontend-only mock API client for the LifeLedger demo.
+ *
+ * NO network calls — every function returns canned data from `demo-data.ts`
+ * and `canned-queries.ts`. User uploads live in sessionStorage as base64
+ * data URLs and disappear when the tab is closed.
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import {
+  DEMO_DOCUMENTS,
+  DEMO_RADAR,
+  DEMO_SPENDING,
+  DEMO_RECURRING,
+  DEMO_TRIPS,
+  DEMO_INCOME,
+  getDemoDocumentDetail,
+  getDemoRelated,
+} from "./demo-data";
+import { CANNED_QUERIES, CANNED_BY_QUERY, REGENERATE_VARIANTS } from "./canned-queries";
 
-export interface ApiError extends Error {
-  status?: number;
+import type {
+  ApiError,
+  Document,
+  DocumentDetail,
+  RadarResponse,
+  RelatedDocument,
+  SearchResult,
+  AskResponse,
+  DeleteResponse,
+  RegenerateResult,
+  SpendingAnalytics,
+  RecurringAnalytics,
+  TripAnalytics,
+  IncomeAnalytics,
+  UploadAndProcessResponse,
+} from "./api-client-types";
+
+// Re-export every type so existing imports (`from "@/lib/api-client"`) keep working.
+export type * from "./api-client-types";
+
+// Token getter shim — auth-context still calls this; we just no-op.
+export function setTokenGetter(_getter: () => Promise<string | null>) {
+  // intentionally empty — no backend to authenticate against
 }
 
-// Token getter - set by AuthProvider on mount
-let _getToken: (() => Promise<string | null>) | null = null;
+// ── Simulated latency for realism ──────────────────────────────────
+const LATENCY_MS = 350;
+const wait = <T>(value: T, ms = LATENCY_MS) =>
+  new Promise<T>((res) => setTimeout(() => res(value), ms));
 
-/**
- * Set the token getter function (called by AuthProvider).
- */
-export function setTokenGetter(getter: () => Promise<string | null>) {
-  _getToken = getter;
-}
+// ── User uploads (session-only, in-memory + sessionStorage) ────────
+const UPLOAD_KEY = "lifeledger_demo_uploads_v1";
+let userUploads: Document[] = loadUploads();
 
-async function apiCall<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const token = _getToken ? await _getToken() : null;
-  if (!token) {
-    throw new Error("Not authenticated");
+function loadUploads(): Document[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.sessionStorage.getItem(UPLOAD_KEY);
+    return raw ? (JSON.parse(raw) as Document[]) : [];
+  } catch {
+    return [];
   }
+}
 
-  const res = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      ...options.headers,
-      Authorization: `Bearer ${token}`,
-    },
+function persistUploads() {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(UPLOAD_KEY, JSON.stringify(userUploads));
+  } catch {
+    // sessionStorage may be full from large images — drop oldest if so
+    while (userUploads.length > 0) {
+      userUploads.shift();
+      try {
+        window.sessionStorage.setItem(UPLOAD_KEY, JSON.stringify(userUploads));
+        break;
+      } catch {
+        /* keep dropping */
+      }
+    }
+  }
+}
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
   });
-
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ detail: "Request failed" }));
-    const err = new Error(error.detail || error.error || `API error: ${res.status}`);
-    (err as ApiError).status = res.status;
-    throw err;
-  }
-
-  return res.json();
 }
 
-// Types matching backend responses
-export interface UploadedDoc {
-  doc_id: number;
-  s3_key: string;
-  filename: string;
-  status: string;
+function classifyByFilename(name: string): Document["type"] {
+  const lower = name.toLowerCase();
+  if (/(receipt|grocer|coffee|food|order)/.test(lower)) return "Receipt";
+  if (/(invoice|bill)/.test(lower)) return "Invoice";
+  if (/(payslip|paystub|paycheck)/.test(lower)) return "Payslip";
+  if (/(lease|rent)/.test(lower)) return "Rental Agreement";
+  if (/(subscription|netflix|spotify)/.test(lower)) return "Subscription";
+  if (/(fine|ticket|citation|parking)/.test(lower)) return "Fine";
+  if (/(insurance|policy|form)/.test(lower)) return "Form";
+  return "Other";
 }
 
-export interface RejectedFile {
-  filename: string;
-  message: string;
-}
+// ── Endpoints ──────────────────────────────────────────────────────
 
-export interface UploadAndProcessResponse {
-  uploaded: UploadedDoc[];
-  count: number;
-  message: string;
-  rejected?: RejectedFile[];
-}
-
-export type DocumentType = "Receipt" | "Subscription" | "Invoice" | "Fine" | "Form" | "Payslip" | "Rental Agreement" | "Other";
-export type StatusType = "Processing" | "Needs Review" | "Done";
-
-export interface LineItem {
-  description: string;
-  qty?: string;
-  unitPrice?: string;
-  amount: string;
-}
-
-export interface Document {
-  id: string;
-  type: DocumentType;
-  fileUrl: string;
-  status: StatusType;
-  primaryEntity: string;
-  secondaryEntity?: string;
-  primaryDate: string;
-  secondaryDate?: string;
-  totalValue: string;
-  lineItems?: LineItem[];
-  metadata?: Record<string, string>;
-  radarProcessed?: boolean;
-}
-
-export interface SafetyInfo {
-  strategy: "REFUSE_ONLY" | "REFUSE_REDIRECT" | "DEESCALATE_SUPPORT" | "ASK_CLARIFY_SAFE";
-  message: string;
-  detail?: string | null;
-}
-
-export interface GroundednessInfo {
-  ungrounded_pct: number;
-  message: string;
-}
-
-export interface ChartDataItem {
-  type: "spending_by_merchant" | "spending_over_time" | "receipt_table";
-  title: string;
-  data: Record<string, unknown>[];
-  summary?: Record<string, unknown>;
-}
-
-export interface SearchResult {
-  answer: string;
-  documents: Document[];
-  query: string;
-  session_id: number;
-  conversation_id: number;
-  safety?: SafetyInfo | null;
-  groundedness?: GroundednessInfo | null;
-  chart_data?: ChartDataItem[] | null;
-}
-
-export interface ChatMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  documents?: Document[];
-  sessionId?: number;
-  safety?: SafetyInfo | null;
-  groundedness?: GroundednessInfo | null;
-  chartData?: ChartDataItem[] | null;
-  isLoading?: boolean;
-}
-
-export interface AskResponse {
-  answer: string;
-  sources: string[];
-  safety?: SafetyInfo | null;
-  groundedness?: GroundednessInfo | null;
-}
-
-/**
- * Upload files and start OCR processing.
- */
 export async function uploadAndProcess(
   files: File[]
 ): Promise<UploadAndProcessResponse> {
-  const token = _getToken ? await _getToken() : null;
-  if (!token) {
-    throw new Error("Not authenticated");
-  }
+  const accepted = files.filter((f) => f.size <= 10 * 1024 * 1024 && f.type.startsWith("image/"));
+  const rejected = files
+    .filter((f) => !accepted.includes(f))
+    .map((f) => ({
+      filename: f.name,
+      message: f.size > 10 * 1024 * 1024 ? "Exceeds 10MB" : "Not a supported image",
+    }));
 
-  const formData = new FormData();
-  files.forEach((file) => formData.append("files", file));
+  // Convert each accepted file to a data URL + synthesize a Document record
+  const uploaded = await Promise.all(
+    accepted.map(async (file, i) => {
+      const dataUrl = await fileToDataUrl(file);
+      const id = `u-${Date.now()}-${i}`;
+      const today = new Date().toISOString().split("T")[0];
+      const doc: Document = {
+        id,
+        type: classifyByFilename(file.name),
+        fileUrl: dataUrl,
+        status: "Done",
+        primaryEntity: file.name.replace(/\.[^.]+$/, ""),
+        primaryDate: today,
+        totalValue: "—",
+        radarProcessed: true,
+        metadata: { Source: "Uploaded this session" },
+      };
+      userUploads.unshift(doc);
+      return {
+        doc_id: i,
+        s3_key: id,
+        filename: file.name,
+        status: "uploaded",
+      };
+    })
+  );
 
-  const res = await fetch(`${API_URL}/uploadAndProcess`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    body: formData,
+  persistUploads();
+
+  return wait({
+    uploaded,
+    count: uploaded.length,
+    message: `Uploaded ${uploaded.length} file(s) for this session.`,
+    rejected: rejected.length > 0 ? rejected : undefined,
   });
-
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ error: "Upload failed" }));
-    throw new Error(error.error || `API error: ${res.status}`);
-  }
-
-  return res.json();
 }
 
-/**
- * Get user's documents.
- */
 export async function getDocuments(): Promise<Document[]> {
-  return apiCall<Document[]>("/documents");
+  // Re-read from sessionStorage in case another tab/route added something
+  userUploads = loadUploads();
+  return wait([...userUploads, ...DEMO_DOCUMENTS]);
 }
 
-/**
- * Search documents with semantic similarity.
- */
-export async function searchDocuments(query: string, conversationId?: number): Promise<SearchResult> {
-  return apiCall<SearchResult>("/search", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query, conversation_id: conversationId ?? null }),
-  });
+export async function getDocument(docId: string): Promise<DocumentDetail> {
+  const upload = userUploads.find((d) => d.id === docId);
+  if (upload) {
+    return wait({ ...upload, ocr_blocks: [], doc_text: "Uploaded image (no OCR in demo)." });
+  }
+  const detail = getDemoDocumentDetail(docId);
+  if (!detail) {
+    const err = new Error("Document not found") as ApiError;
+    err.status = 404;
+    throw err;
+  }
+  return wait(detail);
 }
 
-/**
- * Ask the agent a question.
- */
-export async function askAgent(question: string): Promise<AskResponse> {
-  return apiCall<AskResponse>("/ask", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question }),
-  });
-}
-
-export interface DeleteResponse {
-  deleted_count: number;
-  s3_deleted: number;
-  s3_errors: number;
-  message: string;
-}
-
-/**
- * Delete multiple documents.
- */
-export async function deleteDocuments(
-  documentIds: string[]
-): Promise<DeleteResponse> {
-  return apiCall<DeleteResponse>("/documents", {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ document_ids: documentIds.map(Number) }),
-  });
-}
-
-export interface RadarEvent {
-  id: string;
-  type: DocumentType;
-  fileUrl: string;
-  primaryEntity: string;
-  date: string;
-  description?: string;  // e.g., "Payment due", "Subscription renews"
-  totalValue: string;
-}
-
-export interface RadarResponse {
-  events: RadarEvent[];
-  count: number;
-}
-
-/**
- * Get upcoming events for the radar (dates within next N days).
- */
-export async function getRadarEvents(days: number = 30): Promise<RadarResponse> {
-  return apiCall<RadarResponse>(`/radar?days=${days}`);
-}
-
-/**
- * Submit manual review for a "Needs Review" document.
- * Updates doc_text with the user's note (or "[Reviewed]" if empty).
- */
-export async function reviewDocument(docId: string, note: string): Promise<void> {
-  await apiCall(`/documents/${docId}/review`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ note }),
-  });
-}
-
-export interface RelatedDocument extends Document {
-  similarity: number;  // 0-100 percentage
-}
-
-// OCR bounding box as returned from backend
-export interface OcrBlock {
-  text: string;
-  confidence: number;
-  bbox: number[][];  // 4-point polygon: [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]
-}
-
-export interface DocumentDetail extends Document {
-  ocr_blocks?: OcrBlock[];
-  doc_text?: string;
-}
-
-/**
- * Get documents similar to the given document using vector similarity.
- */
 export async function getRelatedDocuments(
   docId: string,
-  limit: number = 4
+  limit = 4
 ): Promise<RelatedDocument[]> {
-  return apiCall<RelatedDocument[]>(`/documents/${docId}/related?limit=${limit}`);
+  return wait(getDemoRelated(docId, limit));
 }
 
-/**
- * Get a single document by ID with full details including ocr_blocks.
- */
-export async function getDocument(docId: string): Promise<DocumentDetail> {
-  return apiCall<DocumentDetail>(`/documents/${docId}`);
-}
-
-/**
- * Regenerate AI answer for a search query.
- * Logs the attempt for the feedback loop.
- */
-export interface RegenerateResult {
-  answer: string;
-  safety?: SafetyInfo;
-  groundedness?: GroundednessInfo;
-  chart_data?: ChartDataItem[] | null;
-}
-
-export async function regenerateAnswer(
-  sessionId: number
-): Promise<RegenerateResult> {
-  return apiCall<RegenerateResult>("/regenerate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ session_id: sessionId }),
+export async function deleteDocuments(documentIds: string[]): Promise<DeleteResponse> {
+  // Only allow deleting user-uploaded docs (seed docs persist across the demo)
+  const before = userUploads.length;
+  userUploads = userUploads.filter((d) => !documentIds.includes(d.id));
+  persistUploads();
+  return wait({
+    deleted_count: before - userUploads.length,
+    s3_deleted: 0,
+    s3_errors: 0,
+    message: "Deleted",
   });
 }
 
-// Analytics types
-export interface MerchantSpending {
-  merchant: string;
-  total: number;
-  count: number;
+export async function reviewDocument(_docId: string, _note: string): Promise<void> {
+  // No-op in the demo
+  return wait(undefined);
 }
 
-export interface MonthlySpending {
-  month: string;
-  total: number;
+export async function getRadarEvents(_days = 30): Promise<RadarResponse> {
+  return wait({ events: DEMO_RADAR, count: DEMO_RADAR.length });
 }
 
-export interface SpendingAnalytics {
-  by_merchant: MerchantSpending[];
-  by_month: MonthlySpending[];
-  total: number;
+// ── Search / Ask / Regenerate ──────────────────────────────────────
+
+let conversationCounter = 1000;
+let sessionCounter = 5000;
+
+export async function searchDocuments(
+  query: string,
+  conversationId?: number
+): Promise<SearchResult> {
+  const key = query.toLowerCase().trim();
+  const canned = CANNED_BY_QUERY[key]
+    // Loose match — last canned with overlapping keywords
+    ?? CANNED_QUERIES.find((q) => key && q.query.toLowerCase().includes(key));
+
+  const session_id = ++sessionCounter;
+  const conversation_id = conversationId ?? ++conversationCounter;
+
+  if (canned) {
+    return wait({
+      ...canned.result,
+      query,
+      session_id,
+      conversation_id,
+    } as SearchResult);
+  }
+
+  // Fallback for free-typed queries (or follow-ups not in catalog)
+  return wait<SearchResult>({
+    query,
+    session_id,
+    conversation_id,
+    answer:
+      "I couldn't find a great match for that exact phrasing in this demo. Try one of the suggested questions below — they showcase the agent's full capability set.",
+    documents: [],
+    chart_data: null,
+    safety: null,
+    groundedness: null,
+    followUps: CANNED_QUERIES.slice(0, 4).map((q) => q.query),
+  });
 }
 
-export interface RecurringCost {
-  merchant: string;
-  is_recurring: boolean;
-  interval_days: number;
-  monthly_estimate: number;
-  annual_estimate: number;
-  next_renewal_date: string;
-  last_date: string;
-  transaction_count: number;
+export async function askAgent(question: string): Promise<AskResponse> {
+  const result = await searchDocuments(question);
+  return {
+    answer: result.answer,
+    sources: result.documents.map((d) => d.id),
+  };
 }
 
-export interface RecurringAnalytics {
-  recurring: RecurringCost[];
-  total_monthly: number;
-  total_annual: number;
-  count: number;
+export async function regenerateAnswer(sessionId: number): Promise<RegenerateResult> {
+  // Find the canned entry by sessionId — but we don't track that, so cycle by chance
+  const canned =
+    CANNED_QUERIES.find((q) => REGENERATE_VARIANTS[q.id]) ?? CANNED_QUERIES[0];
+  const variants = REGENERATE_VARIANTS[canned.id] ?? [canned.result.answer];
+  const idx = sessionId % variants.length;
+  return wait<RegenerateResult>({
+    answer: variants[idx],
+    chart_data: canned.result.chart_data ?? null,
+    safety: canned.result.safety ?? undefined,
+    groundedness: canned.result.groundedness ?? undefined,
+  });
 }
 
-export interface TripDocument {
-  doc_id: number;
-  merchant: string;
-  date: string;
-  amount: number;
+// ── Analytics ──────────────────────────────────────────────────────
+
+export async function getSpendingAnalytics(_months = 6): Promise<SpendingAnalytics> {
+  return wait(DEMO_SPENDING);
 }
 
-export interface Trip {
-  start_date: string;
-  end_date: string;
-  total_cost: number;
-  document_count: number;
-  location_hint: string | null;
-  documents: TripDocument[];
-}
-
-export interface TripAnalytics {
-  trips: Trip[];
-  total_trip_spending: number;
-  count: number;
-}
-
-export interface EarningsSummary {
-  employer: string;
-  date: string | null;
-  net_pay: number | null;
-  gross_pay: number | null;
-  doc_id: number;
-}
-
-export interface DeductionsBreakdown {
-  canonical: Record<string, number>;
-  other: Record<string, number>;
-  total_deductions: number;
-}
-
-export interface RecurringIncome {
-  employer: string;
-  frequency: string;
-  avg_net_pay: number;
-  monthly_estimate: number;
-  annual_estimate: number;
-  last_pay_date: string | null;
-  paycheck_count: number;
-}
-
-export interface IncomeAnalytics {
-  earnings: EarningsSummary[];
-  deductions: DeductionsBreakdown;
-  recurring_income: RecurringIncome[];
-  total_net: number;
-  total_gross: number;
-}
-
-/**
- * Get spending analytics: by merchant and by month.
- */
-export async function getSpendingAnalytics(months: number = 6): Promise<SpendingAnalytics> {
-  return apiCall<SpendingAnalytics>(`/analytics/spending?months=${months}`);
-}
-
-/**
- * Get detected recurring subscriptions and charges.
- */
 export async function getRecurringCosts(): Promise<RecurringAnalytics> {
-  return apiCall<RecurringAnalytics>("/analytics/recurring");
+  return wait(DEMO_RECURRING);
 }
 
-/**
- * Get detected travel trips grouped by date proximity.
- */
 export async function getTrips(): Promise<TripAnalytics> {
-  return apiCall<TripAnalytics>("/analytics/trips");
+  return wait(DEMO_TRIPS);
 }
 
-/**
- * Get income analytics from payslips.
- */
-export async function getIncomeAnalytics(months: number = 6): Promise<IncomeAnalytics> {
-  return apiCall<IncomeAnalytics>(`/analytics/income?months=${months}`);
+export async function getIncomeAnalytics(_months = 6): Promise<IncomeAnalytics> {
+  return wait(DEMO_INCOME);
 }
