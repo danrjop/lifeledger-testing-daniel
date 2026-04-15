@@ -1,32 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-const protectedRoutes = ["/dashboard"];
-const authRoutes = ["/login", "/signup"];
-
-export function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  // Check for our HttpOnly id token cookie
-  const idToken = request.cookies.get("ll_id_token");
-  const isAuthenticated = !!idToken?.value;
-
-  // Protect dashboard routes — redirect to login if not authenticated
-  if (protectedRoutes.some((route) => pathname.startsWith(route))) {
-    if (!isAuthenticated) {
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
-  }
-
-  // Redirect authenticated users away from login/signup
-  if (authRoutes.some((route) => pathname.startsWith(route))) {
-    if (isAuthenticated) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
-  }
-
+// Demo build: no auth gates. The frontend AuthProvider auto-authenticates
+// every visitor as Sally, so all routes are reachable without cookies.
+export function proxy() {
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/signup"],
+  matcher: [],
 };

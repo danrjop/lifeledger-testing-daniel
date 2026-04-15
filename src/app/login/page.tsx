@@ -9,8 +9,8 @@ import { useAuth } from "@/lib/auth-context";
 export default function LoginPage() {
   const router = useRouter();
   const { checkAuth } = useAuth();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("Sally");
+  const [password, setPassword] = useState("demo1234");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [error, setError] = useState("");
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -51,9 +51,7 @@ export default function LoginPage() {
   if (isLoggingIn) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-bg-primary">
-        <p className="text-body-lg text-fg-secondary">
-          Logging in via AWS Cognito...
-        </p>
+        <p className="text-body-lg text-fg-secondary">Loading demo…</p>
       </div>
     );
   }
